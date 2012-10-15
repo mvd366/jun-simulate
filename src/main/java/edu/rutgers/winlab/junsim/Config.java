@@ -1,6 +1,5 @@
 /*
- * Owl Platform
- * Copyright (C) 2012 Robert Moore and the Owl Platform
+ * Copyright (C) 2012 Robert Moore and Rutgers University
  * 
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -49,7 +48,12 @@ public class Config {
   /**
    * The length of one side of the "universe" square.
    */
-  float squareSize = 100000f;
+  float squareSize = 1000f;
+  
+  /**
+   * Seed value for randomizing.
+   */
+  long randomSeed = 0l;
   
   
   public int getNumTransmitters() {
@@ -81,5 +85,11 @@ public class Config {
   }
   public void setSquareSize(float squareSize) {
     this.squareSize = squareSize;
+  }
+  public long getRandomSeed() {
+    return randomSeed;
+  }
+  public void setRandomSeed(long randomSeed) {
+    this.randomSeed = randomSeed;
   }
 }

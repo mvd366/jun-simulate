@@ -4,6 +4,7 @@
   <numReceivers>1</numReceivers>
   <radioPower>2.0</radioPower>
   <radioAlpha>2.68</radioAlpha>
-  <squareSize>100000.0</squareSize>
+  <squareSize>1000.0</squareSize>
+  <randomSeed>0</randomSeed>
 </edu.rutgers.winlab.junsim.Config>
 
