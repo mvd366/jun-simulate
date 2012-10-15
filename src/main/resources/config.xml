@@ -1,0 +1,9 @@
+<edu.rutgers.winlab.junsim.Config>
+  <beta>0.5</beta>
+  <numTransmitters>1</numTransmitters>
+  <numReceivers>1</numReceivers>
+  <radioPower>2.0</radioPower>
+  <radioAlpha>2.68</radioAlpha>
+  <squareSize>100000.0</squareSize>
+</edu.rutgers.winlab.junsim.Config>
+
