@@ -56,6 +56,8 @@ public class Main {
 
   static ExecutorService workers = null;
 
+  static int maxConcurrentTasks = 1;
+
   public static void main(String[] args) throws IOException {
     if (args.length == 1) {
       System.out.println("Using configuration file " + args[0]);
@@ -66,19 +68,25 @@ public class Main {
       System.out.println("Using built-in default configuration.");
     }
 
-    if (Main.config.numThreads == 0) {
+    if (Main.config.numThreads < 1) {
       workers = Executors.newFixedThreadPool(Runtime.getRuntime()
           .availableProcessors());
+      maxConcurrentTasks = Runtime.getRuntime().availableProcessors();
+      System.out.println("Using " + Runtime.getRuntime().availableProcessors()
+          + " threads based on process availability.");
     } else {
       workers = Executors.newFixedThreadPool(Main.config.numThreads);
+      maxConcurrentTasks = Main.config.numThreads;
+      System.out.println("Using " + Main.config.numThreads
+          + " threads based on configuration file.");
     }
 
-    Runtime.getRuntime().addShutdownHook(new Thread(){
-      public void run(){
+    Runtime.getRuntime().addShutdownHook(new Thread() {
+      public void run() {
         Main.workers.shutdownNow();
       }
     });
-    
+
     if (Main.config.showDisplay) {
       doDisplayedResult();
     } else {
@@ -110,6 +118,7 @@ public class Main {
 
     // Iterate through some number of trials
     for (int trialNumber = 0; trialNumber < Main.config.numTrials; ++trialNumber) {
+
       long startTrial = System.currentTimeMillis();
       int numTransmitters = Main.config.numTransmitters;
       // Randomly generate transmitter locations
@@ -143,8 +152,9 @@ public class Main {
         }
       }
 
-      List<Future<?>> futures;
-
+      System.out.printf("Trial %d/%d: %d tx, %,d disks, %,d solution points.\n",
+          trialNumber+1, Main.config.numTrials, numTransmitters, disks.size(),
+          solutionPoints.size());
       List<ExperimentTask> tasks = new LinkedList<ExperimentTask>();
       for (int numReceivers = 1; numReceivers <= Main.config.numReceivers; ++numReceivers) {
         TaskConfig conf = new TaskConfig();
@@ -154,23 +164,44 @@ public class Main {
         ExperimentTask task = new ExperimentTask(conf, stats[numReceivers - 1]);
         tasks.add(task);
 
+        // Don't schedule too many at once, eats-up memory!
+        if (tasks.size() >= Main.maxConcurrentTasks) {
+          System.out.printf(
+              "Executing %d tasks. %d tasks remain for this trial.\n",
+              tasks.size(), Main.config.numReceivers - numReceivers);
+          try {
+            // The following call will block utnil ALL tasks are complete
+            workers.invokeAll(tasks);
+          } catch (InterruptedException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+          }
+          for (ExperimentTask t : tasks) {
+            t.config.disks = null;
+            t.config.solutionPoints = null;
+          }
+          tasks.clear();
+        }
       } // End for number of receivers
 
-      try {
-        // The following call will block utnil ALL tasks are complete
-        workers.invokeAll(tasks);
-      } catch (InterruptedException e) {
-        // TODO Auto-generated catch block
-        e.printStackTrace();
+      if (!tasks.isEmpty()) {
+        try {
+          // The following call will block utnil ALL tasks are complete
+          workers.invokeAll(tasks);
+        } catch (InterruptedException e) {
+          // TODO Auto-generated catch block
+          e.printStackTrace();
+        }
+        for (ExperimentTask t : tasks) {
+          t.config.disks = null;
+          t.config.solutionPoints = null;
+        }
+        tasks.clear();
       }
-      for(ExperimentTask t : tasks){
-        t.config.disks = null;
-        t.config.solutionPoints = null;
-      }
-      tasks.clear();
 
       long endTrial = System.currentTimeMillis();
-      System.out.println("Completed trial " + (trialNumber+1) +"/" + Main.config.numTrials + " in " + (endTrial-startTrial) + "ms.");
+      System.out.println("Completed trial " + (trialNumber + 1) + "/"
+          + Main.config.numTrials + " in " + (endTrial - startTrial) + "ms.");
     } // End for number of trials
 
     workers.shutdown();

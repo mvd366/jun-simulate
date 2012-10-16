@@ -10,6 +10,6 @@
   <showDisplay>false</showDisplay>
   <numTrials>100</numTrials>
   <outputFileName>trials-20.csv</outputFileName>
-  <numThreads>0</numThreads>
+  <numThreads>2</numThreads>
 </edu.rutgers.winlab.junsim.Config>
 
