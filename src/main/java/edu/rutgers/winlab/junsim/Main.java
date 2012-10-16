@@ -123,7 +123,8 @@ public class Main {
 
       int numTransmitters = Main.config.numTransmitters;
       // Randomly generate transmitter locations
-      Collection<Transmitter> transmitters = Main.generateTransmitterLocations(numTransmitters);
+      Collection<Transmitter> transmitters = Main
+          .generateTransmitterLocations(numTransmitters);
 
       // System.out.printf("Trial %d/%d: %d tx, %,d disks, %,d solution points.\n",
       // trialNumber+1, Main.config.numTrials, numTransmitters, disks.size(),
@@ -148,8 +149,8 @@ public class Main {
           e.printStackTrace();
         }
         for (ExperimentTask t : tasks) {
-//          t.config.disks = null;
-//          t.config.solutionPoints = null;
+          // t.config.disks = null;
+          // t.config.solutionPoints = null;
           t.config.transmitters.clear();
           t.config.transmitters = null;
         }
@@ -166,8 +167,8 @@ public class Main {
         e.printStackTrace();
       }
       for (ExperimentTask t : tasks) {
-//        t.config.disks = null;
-//        t.config.solutionPoints = null;
+        // t.config.disks = null;
+        // t.config.solutionPoints = null;
         t.config.transmitters.clear();
         t.config.transmitters = null;
       }
@@ -336,10 +337,10 @@ public class Main {
     Transmitter txer = null;
     for (int i = 0; i < numTransmitters; ++i) {
       txer = new Transmitter();
-      txer.x = (Main.config.universeWidth - Main.config.squareWidth)
-          * .5f + Main.rand.nextFloat() * Main.config.squareWidth;
-      txer.y = (Main.config.universeHeight - Main.config.squareHeight)
-          * .5f + Main.rand.nextFloat() * Main.config.squareHeight;
+      txer.x = (Main.config.universeWidth - Main.config.squareWidth) * .5f
+          + Main.rand.nextFloat() * Main.config.squareWidth;
+      txer.y = (Main.config.universeHeight - Main.config.squareHeight) * .5f
+          + Main.rand.nextFloat() * Main.config.squareHeight;
       txers.add(txer);
     }
     return txers;
@@ -362,7 +363,7 @@ public class Main {
       return null;
     }
     CaptureDisk captureDisk = new CaptureDisk();
-    captureDisk.disk = new Ellipse2D.Float();
+    captureDisk.disk = new Circle();
     captureDisk.t1 = t1;
     captureDisk.t2 = t2;
     double betaSquared = Math.pow(Main.config.beta, 2);
@@ -376,10 +377,9 @@ public class Main {
 
     double radius = (Main.config.beta * euclideanDistance) / denominator;
 
-    captureDisk.disk.height = (float) (radius * 2);
-    captureDisk.disk.width = (float) (radius * 2);
-    captureDisk.disk.x = (float) (centerX - radius);
-    captureDisk.disk.y = (float) (centerY - radius);
+    captureDisk.disk.radius = (float) radius;
+    captureDisk.disk.center.x = (float) centerX;
+    captureDisk.disk.center.y = (float) centerY;
 
     return captureDisk;
   }
@@ -405,8 +405,8 @@ public class Main {
         cd1.disk.getCenterX() - cd2.disk.getCenterX(), 2)
         + Math.pow(cd1.disk.getCenterY() - cd2.disk.getCenterY(), 2));
 
-    double r1 = cd1.disk.getWidth() / 2;
-    double r2 = cd2.disk.getWidth() / 2;
+    double r1 = cd1.disk.radius;
+    double r2 = cd2.disk.radius;
     double d1 = (Math.pow(r1, 2) - Math.pow(r2, 2) + Math.pow(d, 2)) / (2 * d);
 
     // Circles are too far apart to overlap.
@@ -435,8 +435,14 @@ public class Main {
     }
 
     LinkedList<Point2D> points = new LinkedList<Point2D>();
-    points.add(new Point2D.Float((float) x4i, (float) y4i));
-    points.add(new Point2D.Float((float) x4ii, (float) y4ii));
+    if (x4i >= 0 && x4i <= Main.config.universeWidth && y4i >= 0
+        && y4i <= Main.config.universeHeight) {
+      points.add(new Point2D.Float((float) x4i, (float) y4i));
+    }
+    if (x4ii >= 0 && x4ii <= Main.config.universeWidth && y4ii >= 0
+        && y4ii <= Main.config.universeHeight) {
+      points.add(new Point2D.Float((float) x4ii, (float) y4ii));
+    }
     return points;
   }
 }

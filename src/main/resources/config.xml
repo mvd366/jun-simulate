@@ -10,9 +10,9 @@
   <universeWidth>1920</universeWidth>
   <randomSeed>2</randomSeed>
   <showDisplay>false</showDisplay>
-  <numTrials>10</numTrials>
+  <numTrials>100</numTrials>
   <outputFileName>test.csv</outputFileName>
-  <numThreads>1</numThreads>
+  <numThreads>2</numThreads>
   <generateImages>true</generateImages>
 </edu.rutgers.winlab.junsim.Config>
 

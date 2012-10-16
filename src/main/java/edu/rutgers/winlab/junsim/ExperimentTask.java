@@ -49,8 +49,6 @@ public class ExperimentTask implements Callable<Boolean> {
   @Override
   public Boolean call() {
 
-    System.out.println("[" + this.config.trialNumber + "] Generating capture disks.");
-    
     Collection<CaptureDisk> disks = new HashSet<CaptureDisk>();
     // Compute all possible capture disks
     for (Transmitter t1 : this.config.transmitters) {
@@ -61,7 +59,10 @@ public class ExperimentTask implements Callable<Boolean> {
         }
       }
     }
-    System.out.println("[" + this.config.trialNumber + "] Adding center point solutions.");
+    System.out.println("[" + this.config.trialNumber
+        + "] Generated " + disks.size() + " disks.");
+    
+    
     // Add center points of all capture disks as solutions
     Collection<Point2D> solutionPoints = new HashSet<Point2D>();
     for (CaptureDisk disk : disks) {
@@ -69,7 +70,8 @@ public class ExperimentTask implements Callable<Boolean> {
           (float) disk.disk.getCenterY()));
     }
 
-    System.out.println("[" + this.config.trialNumber + "] Generating intersection solutions.");
+    System.out.println("[" + this.config.trialNumber
+        + "] Generating intersection solutions.");
     // Add intersection of all capture disks as solutions
     for (CaptureDisk d1 : disks) {
       for (CaptureDisk d2 : disks) {
@@ -79,9 +81,12 @@ public class ExperimentTask implements Callable<Boolean> {
         }
       }
     }
+    
+    System.out.println("[" + this.config.trialNumber
+        + "] Generated " + solutionPoints.size() + " solution points.");
 
     DisplayPanel display = new DisplayPanel();
-    
+
     int totalCaptureDisks = disks.size();
     int totalSolutionPoints = solutionPoints.size();
     int m = 0;
@@ -89,7 +94,8 @@ public class ExperimentTask implements Callable<Boolean> {
     Collection<Receiver> receivers = new LinkedList<Receiver>();
     while (m < this.config.numReceivers && !solutionPoints.isEmpty()
         && !disks.isEmpty()) {
-      System.out.println("[" + this.config.trialNumber + "] Calculating position for receiver " + (m+1) + ".");
+      System.out.println("[" + this.config.trialNumber
+          + "] Calculating position for receiver " + (m + 1) + ".");
       HashMap<Point2D, Collection<CaptureDisk>> bipartiteGraph = new HashMap<Point2D, Collection<CaptureDisk>>();
 
       Point2D maxPoint = null;
@@ -97,8 +103,12 @@ public class ExperimentTask implements Callable<Boolean> {
 
       // For each solution point, map the set of capture disks that contain
       // it
-      for (Point2D p : solutionPoints) {
-        for (CaptureDisk d : disks) {
+      int diskNum = 0;
+      for (CaptureDisk d : disks) {
+//        System.out.println("[" + this.config.trialNumber
+//            + "] Disk " + diskNum + "/" + disks.size() + ".");
+        ++diskNum;
+        for (Point2D p : solutionPoints) {
           if (d.disk.contains(p)) {
             Collection<CaptureDisk> containingPoints = bipartiteGraph.get(p);
             if (containingPoints == null) {
@@ -131,31 +141,33 @@ public class ExperimentTask implements Callable<Boolean> {
 
       float capturedDisks = totalCaptureDisks - disks.size();
       float captureRatio = (capturedDisks / totalCaptureDisks);
-      float receiverRatio = (1f*m+1)/this.config.numReceivers;
+      float receiverRatio = (1f * m + 1) / this.config.numReceivers;
       // Debugging stuff
-      if(Main.config.generateImages && captureRatio < .999f && receiverRatio >= 0.85){
-        BufferedImage img = new BufferedImage(1920,1080,BufferedImage.TYPE_INT_RGB);
+      if (Main.config.generateImages && captureRatio < .999f
+          && receiverRatio >= 0.5) {
+        BufferedImage img = new BufferedImage(1920, 1080,
+            BufferedImage.TYPE_INT_RGB);
         Graphics g = img.createGraphics();
-        
+
         display.setTransmitters(this.config.transmitters);
         display.setSolutionPoints(solutionPoints);
         display.setCaptureDisks(disks);
         display.setReceiverPoints(receivers);
-        
-        display.render(g,img.getWidth(),img.getHeight());
-        
-        File imageFile = new File("t"+this.config.numTransmitters+"_r" + (m+1) + "_x" + this.config.trialNumber+".png");
+
+        display.render(g, img.getWidth(), img.getHeight());
+
+        File imageFile = new File("t" + this.config.numTransmitters + "_r"
+            + (m + 1) + "_x" + this.config.trialNumber + ".png");
         try {
           ImageIO.write(img, "png", imageFile);
           System.out.println("Wrote " + imageFile.getName());
-        }catch(Exception e){
+        } catch (Exception e) {
           e.printStackTrace();
         }
         g.dispose();
-        
-        
+
       }
-      
+
       this.stats[m].addCoverage(captureRatio);
       ++m;
 
@@ -164,7 +176,7 @@ public class ExperimentTask implements Callable<Boolean> {
       }
       bipartiteGraph.clear();
 
-    }
+    } // End for each receiver
 
     // }
     disks.clear();

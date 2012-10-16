@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2012 Robert Moore and Rutgers University
+ * Owl Platform
+ * Copyright (C) 2012 Robert Moore and the Owl Platform
  * 
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,50 +20,39 @@ package edu.rutgers.winlab.junsim;
 
 import java.awt.Graphics2D;
 import java.awt.geom.AffineTransform;
-import java.awt.geom.Ellipse2D;
+import java.awt.geom.Point2D;
 
 /**
  * @author Robert Moore
  * 
  */
-public class CaptureDisk implements Drawable {
-  /**
-   * The capture disk of (t1,t2);
-   */
-  public Circle disk;
-  /**
-   * The transmitter that successfully transmits a packet.
-   */
-  public Transmitter t1;
-  /**
-   * The transmitter that collides.
-   */
-  public Transmitter t2;
+public class Circle implements Drawable {
+  public float radius = 0f;
+  public Point2D.Float center = new Point2D.Float();
 
   @Override
-  public boolean equals(Object o) {
-    if (o instanceof CaptureDisk) {
-      return this.equals((CaptureDisk) o);
-    }
-    return super.equals(o);
-  }
-
-  public boolean equals(CaptureDisk c) {
-    if (this.t1.equals(c.t1) && this.t2.equals(c.t2)) {
-      return true;
-    }
-    return this.disk.equals(c.disk);
-  }
-
   public void draw(Graphics2D g) {
     AffineTransform origTransform = g.getTransform();
-    // g.translate(this.disk.getMinX(), this.disk.getMinY());
-    this.disk.draw(g);
+
+    g.drawOval((int) (this.center.getX() - this.radius),
+        (int) (this.center.getY() - radius), (int) (this.radius * 2),
+        (int) (this.radius * 2));
+
     g.setTransform(origTransform);
   }
 
-  @Override
-  public int hashCode() {
-    return this.disk.hashCode();
+  public boolean contains(Point2D p) {
+    float dist = (float) Math.sqrt(Math.pow(p.getX() - this.center.getX(), 2)
+        - Math.pow(p.getY() - this.center.getY(), 2));
+    return this.radius >= dist;
   }
+  
+  public double getCenterX(){
+    return this.center.getX();
+  }
+  
+  public double getCenterY(){
+    return this.center.getY();
+  }
+
 }
