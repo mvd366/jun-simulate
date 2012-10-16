@@ -49,34 +49,40 @@ public class Config {
   /**
    * The length of one side of the square where transmitters can be located.
    */
-  private float squareSize = 100f;
-  
-  
-  float universeSize = this.squareSize*1.5f;
+  float squareWidth = 1820f;
+  float squareHeight = 980f;
+
+  float universeWidth = 1920f;
+  float universeHeight = 1080f;
 
   /**
    * Seed value for randomizing.
    */
   long randomSeed = 0l;
-  
+
   /**
    * Number of simulation trials to run in non-display mode.
    */
   long numTrials = 1l;
-  
+
   /**
    * File name for output statistics in non-display mode.
    */
   String outputFileName = "to-simulate.txt";
-  
+
   /**
    * Whether or not to show the graphical display.
    */
   boolean showDisplay = true;
-  
   /**
-   * Number of worker threads for concurrent execution.  Careful with large numbers
-   * of transmitters!
+   * Whether or not to render images for "failures" where high numbers of
+   * receivers can't "cover" 99.9%+ of Capture Disks.
+   */
+  boolean generateImages = false;
+
+  /**
+   * Number of worker threads for concurrent execution. Careful with large
+   * numbers of transmitters!
    */
   int numThreads = 0;
 
@@ -112,15 +118,6 @@ public class Config {
     this.radioAlpha = radioAlpha;
   }
 
-  public float getSquareSize() {
-    return squareSize;
-  }
-
-  public void setSquareSize(float squareSize) {
-    this.squareSize = squareSize;
-    this.universeSize = this.squareSize*1.5f;
-  }
-
   public long getRandomSeed() {
     return randomSeed;
   }
@@ -145,14 +142,6 @@ public class Config {
     this.showDisplay = showDisplay;
   }
 
-  public float getUniverseSize() {
-    return universeSize;
-  }
-
-  public void setUniverseSize(float universeSize) {
-    this.universeSize = universeSize;
-  }
-
   public long getNumTrials() {
     return numTrials;
   }
@@ -175,5 +164,13 @@ public class Config {
 
   public void setNumThreads(int numThreads) {
     this.numThreads = numThreads;
+  }
+
+  public boolean isGenerateImages() {
+    return generateImages;
+  }
+
+  public void setGenerateImages(boolean generateImages) {
+    this.generateImages = generateImages;
   }
 }

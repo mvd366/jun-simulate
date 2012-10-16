@@ -26,7 +26,8 @@ import java.util.Collection;
  *
  */
 public class TaskConfig {
-  Collection<Point2D> solutionPoints;
-  Collection<CaptureDisk> disks;
+  int trialNumber = 0;
+  int numTransmitters;
+  Collection<Transmitter> transmitters;
   int numReceivers;
 }

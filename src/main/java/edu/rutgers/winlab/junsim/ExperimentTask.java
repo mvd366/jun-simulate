@@ -18,54 +18,85 @@
  */
 package edu.rutgers.winlab.junsim;
 
+import java.awt.Graphics;
 import java.awt.geom.Point2D;
+import java.awt.image.BufferedImage;
+import java.io.File;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.concurrent.Callable;
 
+import javax.imageio.ImageIO;
+import javax.swing.JFrame;
+
 /**
  * @author Robert Moore
- *
+ * 
  */
 public class ExperimentTask implements Callable<Boolean> {
 
   final TaskConfig config;
-  final ExperimentStats stats;
-  
-  public ExperimentTask(final TaskConfig config, final ExperimentStats stats){
+  final ExperimentStats stats[];
+
+  public ExperimentTask(final TaskConfig config, final ExperimentStats[] stats) {
     super();
     this.config = config;
     this.stats = stats;
   }
-  
+
   @Override
   public Boolean call() {
-    Collection<Point2D> clonePoints = new LinkedList<Point2D>();
-    clonePoints.addAll(this.config.solutionPoints);
-    Collection<CaptureDisk> cloneDisks = new LinkedList<CaptureDisk>();
-    cloneDisks.addAll(this.config.disks);
-    
-    int totalCaptureDisks = cloneDisks.size();
-    int totalSolutionPoints = clonePoints.size();
 
+    Collection<CaptureDisk> disks = new HashSet<CaptureDisk>();
+    // Compute all possible capture disks
+    for (Transmitter t1 : this.config.transmitters) {
+      for (Transmitter t2 : this.config.transmitters) {
+        CaptureDisk someDisk = Main.generateCaptureDisk(t1, t2);
+        if (someDisk != null) {
+          disks.add(someDisk);
+        }
+      }
+    }
+
+    // Add center points of all capture disks as solutions
+    Collection<Point2D> solutionPoints = new HashSet<Point2D>();
+    for (CaptureDisk disk : disks) {
+      solutionPoints.add(new Point2D.Float((float) disk.disk.getCenterX(),
+          (float) disk.disk.getCenterY()));
+    }
+
+    // Add intersection of all capture disks as solutions
+    for (CaptureDisk d1 : disks) {
+      for (CaptureDisk d2 : disks) {
+        Collection<Point2D> intersections = Main.generateIntersections(d1, d2);
+        if (intersections != null && !intersections.isEmpty()) {
+          solutionPoints.addAll(intersections);
+        }
+      }
+    }
+
+    DisplayPanel display = new DisplayPanel();
+    
+    int totalCaptureDisks = disks.size();
+    int totalSolutionPoints = solutionPoints.size();
     int m = 0;
     // Keep going while there are either solution points or capture disks
-    while (m < this.config.numReceivers && !clonePoints.isEmpty()
-        && !cloneDisks.isEmpty()) {
+    Collection<Receiver> receivers = new LinkedList<Receiver>();
+    while (m < this.config.numReceivers && !solutionPoints.isEmpty()
+        && !disks.isEmpty()) {
       HashMap<Point2D, Collection<CaptureDisk>> bipartiteGraph = new HashMap<Point2D, Collection<CaptureDisk>>();
 
       Point2D maxPoint = null;
-      int maxDisks = Integer.MIN_VALUE;
+      int maxDisks = 0;
 
       // For each solution point, map the set of capture disks that contain
       // it
-      for (Point2D p : clonePoints) {
-        for (CaptureDisk d : cloneDisks) {
+      for (Point2D p : solutionPoints) {
+        for (CaptureDisk d : disks) {
           if (d.disk.contains(p)) {
-            Collection<CaptureDisk> containingPoints = bipartiteGraph
-                .get(p);
+            Collection<CaptureDisk> containingPoints = bipartiteGraph.get(p);
             if (containingPoints == null) {
               containingPoints = new HashSet<CaptureDisk>();
               bipartiteGraph.put(p, containingPoints);
@@ -78,35 +109,63 @@ public class ExperimentTask implements Callable<Boolean> {
           }
         }
       }
-      
 
       // Remove the highest point and its solution disks
-      if (maxDisks > 0) {
-        Collection<CaptureDisk> removedDisks = bipartiteGraph.get(maxPoint);
+      if (maxPoint != null) {
+        Collection<CaptureDisk> removedDisks = bipartiteGraph.remove(maxPoint);
         Receiver r = new Receiver();
         r.setLocation(maxPoint);
         r.coveringDisks = removedDisks;
-        clonePoints.remove(maxPoint);
-        cloneDisks.removeAll(removedDisks);
+        receivers.add(r);
+        solutionPoints.remove(maxPoint);
+        disks.removeAll(removedDisks);
       }
       // No solutions found?
       else {
         break;
       }
-      ++m;
+
+      float capturedDisks = totalCaptureDisks - disks.size();
+      float captureRatio = (capturedDisks / totalCaptureDisks);
+      float receiverRatio = (1f*m+1)/this.config.numReceivers;
+      // Debugging stuff
+      if(Main.config.generateImages && captureRatio < .999f && receiverRatio >= 0.85){
+        BufferedImage img = new BufferedImage(1920,1080,BufferedImage.TYPE_INT_RGB);
+        Graphics g = img.createGraphics();
+        
+        display.setTransmitters(this.config.transmitters);
+        display.setSolutionPoints(solutionPoints);
+        display.setCaptureDisks(disks);
+        display.setReceiverPoints(receivers);
+        
+        display.render(g,img.getWidth(),img.getHeight());
+        
+        File imageFile = new File("t"+this.config.numTransmitters+"_r" + (m+1) + "_x" + this.config.trialNumber+".png");
+        try {
+          ImageIO.write(img, "png", imageFile);
+          System.out.println("Wrote " + imageFile.getName());
+        }catch(Exception e){
+          e.printStackTrace();
+        }
+        g.dispose();
+        
+        
+      }
       
-      for(Collection<CaptureDisk> vals :bipartiteGraph.values()){
+      this.stats[m].addCoverage(captureRatio);
+      ++m;
+
+      for (Collection<CaptureDisk> vals : bipartiteGraph.values()) {
         vals.clear();
       }
       bipartiteGraph.clear();
+
     }
 
-    float capturedDisks = totalCaptureDisks - cloneDisks.size();
-    float captureRatio = (capturedDisks / totalCaptureDisks);
-
-    this.stats.addCoverage(captureRatio);
-    cloneDisks.clear();
-    clonePoints.clear();
+    // }
+    disks.clear();
+    solutionPoints.clear();
+    this.config.transmitters.clear();
     Runtime.getRuntime().gc();
     return Boolean.TRUE;
   }

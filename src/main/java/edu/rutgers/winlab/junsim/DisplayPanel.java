@@ -18,6 +18,7 @@
 package edu.rutgers.winlab.junsim;
 
 import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.geom.AffineTransform;
@@ -38,22 +39,33 @@ public class DisplayPanel extends JPanel {
   private Collection<Point2D> points = new LinkedList<Point2D>();
   private Collection<Receiver> receiverPoints = new LinkedList<Receiver>();
 
+  public DisplayPanel() {
+    super();
+    this.setPreferredSize(new Dimension(640, 480));
+  }
+
   @Override
   protected void paintComponent(Graphics g) {
     super.paintComponent(g);
+    this.render(g, this.getWidth(), this.getHeight());
 
-    float scaleX = this.getWidth() / Main.config.universeSize;
-    
-    float scaleY = this.getHeight() / Main.config.universeSize;
+  }
+
+  public void render(Graphics g, int width, int height) {
+
+    float scaleX = width / Main.config.universeWidth;
+
+    float scaleY = height / Main.config.universeHeight;
 
     Graphics2D g2 = (Graphics2D) g;
 
     AffineTransform origTransform = g2.getTransform();
-    
+
     g2.scale(scaleX, scaleY);
-    
+
     g2.setColor(Color.BLACK);
-    g2.fillRect(0, 0, (int)Main.config.universeSize+1, (int)Main.config.universeSize+1);
+    g2.fillRect(0, 0, (int) Main.config.universeWidth+ 1,
+        (int) Main.config.universeHeight + 1);
     g2.setColor(Color.WHITE);
 
     for (Drawable d : devices) {
@@ -61,23 +73,28 @@ public class DisplayPanel extends JPanel {
     }
 
     g2.setColor(Color.RED);
-    
+
     for (CaptureDisk d : disks) {
       d.draw(g2);
     }
 
     g2.setColor(Color.GREEN);
-    
+
     for (Point2D p : points) {
       g2.fillOval((int) p.getX(), (int) p.getY(), 2, 2);
     }
-    
+
     g2.setColor(Color.BLUE);
-    for(Receiver p : receiverPoints){
+    for (Receiver p : receiverPoints) {
       p.draw(g2);
     }
-    
+
+    g2.setColor(Color.WHITE);
+
     g2.setTransform(origTransform);
+    g2.drawString(
+        "T" + this.devices.size() + " R" + this.receiverPoints.size(), 0,
+        this.getHeight());
   }
 
   public void setTransmitters(Collection<Transmitter> devices) {
@@ -104,8 +121,8 @@ public class DisplayPanel extends JPanel {
     this.points.addAll(points);
     this.repaint(10);
   }
-  
-  public void setReceiverPoints(Collection<Receiver> points){
+
+  public void setReceiverPoints(Collection<Receiver> points) {
     this.receiverPoints.clear();
     this.receiverPoints.addAll(points);
     this.repaint(10);

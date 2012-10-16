@@ -116,75 +116,30 @@ public class Main {
     fileWriter
         .println("# Tx, # Rx, Min % Covered, Med. % Covered, Mean % Covered, 95% Coverage, Max % Covered");
 
+    List<ExperimentTask> tasks = new LinkedList<ExperimentTask>();
+
     // Iterate through some number of trials
     for (int trialNumber = 0; trialNumber < Main.config.numTrials; ++trialNumber) {
 
-      long startTrial = System.currentTimeMillis();
       int numTransmitters = Main.config.numTransmitters;
       // Randomly generate transmitter locations
-      Collection<Transmitter> transmitters = generateTransmitterLocations(numTransmitters);
+      Collection<Transmitter> transmitters = Main.generateTransmitterLocations(numTransmitters);
 
-      Collection<CaptureDisk> disks = new HashSet<CaptureDisk>();
-      // Compute all possible capture disks
-      for (Transmitter t1 : transmitters) {
-        for (Transmitter t2 : transmitters) {
-          CaptureDisk someDisk = generateCaptureDisk(t1, t2);
-          if (someDisk != null) {
-            disks.add(someDisk);
-          }
-        }
-      }
+      // System.out.printf("Trial %d/%d: %d tx, %,d disks, %,d solution points.\n",
+      // trialNumber+1, Main.config.numTrials, numTransmitters, disks.size(),
+      // solutionPoints.size());
 
-      // Add center points of all capture disks as solutions
-      Collection<Point2D> solutionPoints = new HashSet<Point2D>();
-      for (CaptureDisk disk : disks) {
-        solutionPoints.add(new Point2D.Float((float) disk.disk.getCenterX(),
-            (float) disk.disk.getCenterY()));
-      }
+      TaskConfig conf = new TaskConfig();
+      conf.trialNumber = trialNumber;
+      conf.numTransmitters = numTransmitters;
+      conf.transmitters = transmitters;
+      conf.numReceivers = Main.config.numReceivers;
+      ExperimentTask task = new ExperimentTask(conf, stats);
+      tasks.add(task);
 
-      // Add intersection of all capture disks as solutions
-      for (CaptureDisk d1 : disks) {
-        for (CaptureDisk d2 : disks) {
-          Collection<Point2D> intersections = generateIntersections(d1, d2);
-          if (intersections != null && !intersections.isEmpty()) {
-            solutionPoints.addAll(intersections);
-          }
-        }
-      }
-
-      System.out.printf("Trial %d/%d: %d tx, %,d disks, %,d solution points.\n",
-          trialNumber+1, Main.config.numTrials, numTransmitters, disks.size(),
-          solutionPoints.size());
-      List<ExperimentTask> tasks = new LinkedList<ExperimentTask>();
-      for (int numReceivers = 1; numReceivers <= Main.config.numReceivers; ++numReceivers) {
-        TaskConfig conf = new TaskConfig();
-        conf.disks = disks;
-        conf.solutionPoints = solutionPoints;
-        conf.numReceivers = numReceivers;
-        ExperimentTask task = new ExperimentTask(conf, stats[numReceivers - 1]);
-        tasks.add(task);
-
-        // Don't schedule too many at once, eats-up memory!
-        if (tasks.size() >= Main.maxConcurrentTasks) {
-          System.out.printf(
-              "Executing %d tasks. %d tasks remain for this trial.\n",
-              tasks.size(), Main.config.numReceivers - numReceivers);
-          try {
-            // The following call will block utnil ALL tasks are complete
-            workers.invokeAll(tasks);
-          } catch (InterruptedException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-          }
-          for (ExperimentTask t : tasks) {
-            t.config.disks = null;
-            t.config.solutionPoints = null;
-          }
-          tasks.clear();
-        }
-      } // End for number of receivers
-
-      if (!tasks.isEmpty()) {
+      // Don't schedule too many at once, eats-up memory!
+      if (tasks.size() >= Main.maxConcurrentTasks) {
+        System.out.printf("Executing %d tasks.\n", tasks.size());
         try {
           // The following call will block utnil ALL tasks are complete
           workers.invokeAll(tasks);
@@ -193,16 +148,31 @@ public class Main {
           e.printStackTrace();
         }
         for (ExperimentTask t : tasks) {
-          t.config.disks = null;
-          t.config.solutionPoints = null;
+//          t.config.disks = null;
+//          t.config.solutionPoints = null;
+          t.config.transmitters.clear();
+          t.config.transmitters = null;
         }
         tasks.clear();
       }
+    } // End number of trials
 
-      long endTrial = System.currentTimeMillis();
-      System.out.println("Completed trial " + (trialNumber + 1) + "/"
-          + Main.config.numTrials + " in " + (endTrial - startTrial) + "ms.");
-    } // End for number of trials
+    if (!tasks.isEmpty()) {
+      try {
+        // The following call will block utnil ALL tasks are complete
+        workers.invokeAll(tasks);
+      } catch (InterruptedException e) {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+      }
+      for (ExperimentTask t : tasks) {
+//        t.config.disks = null;
+//        t.config.solutionPoints = null;
+        t.config.transmitters.clear();
+        t.config.transmitters = null;
+      }
+      tasks.clear();
+    }
 
     workers.shutdown();
     System.out.println("Waiting up to 60 seconds for threadpool to terminate.");
@@ -366,10 +336,10 @@ public class Main {
     Transmitter txer = null;
     for (int i = 0; i < numTransmitters; ++i) {
       txer = new Transmitter();
-      txer.x = (Main.config.getUniverseSize() - Main.config.getSquareSize())
-          * .5f + Main.rand.nextFloat() * Main.config.getSquareSize();
-      txer.y = (Main.config.getUniverseSize() - Main.config.getSquareSize())
-          * .5f + Main.rand.nextFloat() * Main.config.getSquareSize();
+      txer.x = (Main.config.universeWidth - Main.config.squareWidth)
+          * .5f + Main.rand.nextFloat() * Main.config.squareWidth;
+      txer.y = (Main.config.universeHeight - Main.config.squareHeight)
+          * .5f + Main.rand.nextFloat() * Main.config.squareHeight;
       txers.add(txer);
     }
     return txers;

@@ -49,14 +49,22 @@ public class ExperimentStats {
   }
 
   float getMinCoverage() {
+    if(this.coverages.size() == 0){
+      return Float.NaN;
+    }
+    
     if (!this.sorted) {
       Collections.sort(this.coverages);
       this.sorted = true;
     }
+    
     return this.coverages.get(0);
   }
 
   float getMedianCoverage() {
+    if(this.coverages.size() == 0){
+      return Float.NaN;
+    }
     if (!this.sorted) {
       Collections.sort(this.coverages);
       this.sorted = true;
@@ -65,6 +73,9 @@ public class ExperimentStats {
   }
 
   float getMeanCoverage() {
+    if(this.coverages.size() == 0){
+      return Float.NaN;
+    }
     float totalCoverage = 0;
     for (Float c : this.coverages) {
       totalCoverage += c;
@@ -74,6 +85,9 @@ public class ExperimentStats {
   }
 
   float getMaxCoverage() {
+    if(this.coverages.size() == 0){
+      return Float.NaN;
+    }
     if (!this.sorted) {
       Collections.sort(this.coverages);
       this.sorted = true;
@@ -82,6 +96,9 @@ public class ExperimentStats {
   }
 
   float get95Percentile() {
+    if(this.coverages.size() == 0){
+      return Float.NaN;
+    }
     if (!this.sorted) {
       Collections.sort(this.coverages);
       this.sorted = true;

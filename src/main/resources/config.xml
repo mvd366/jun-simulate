@@ -1,15 +1,18 @@
 <edu.rutgers.winlab.junsim.Config>
   <beta>0.65</beta>
-  <numTransmitters>20</numTransmitters>
-  <numReceivers>20</numReceivers>
+  <numTransmitters>15</numTransmitters>
+  <numReceivers>15</numReceivers>
   <radioPower>2.0</radioPower>
   <radioAlpha>2.68</radioAlpha>
-  <squareSize>500.0</squareSize>
-  <universeSize>500.0</universeSize>
+  <squareWidth>1820</squareWidth>
+  <squareHeight>980</squareHeight>
+  <universeHeight>1080</universeHeight>
+  <universeWidth>1920</universeWidth>
   <randomSeed>2</randomSeed>
   <showDisplay>false</showDisplay>
-  <numTrials>100</numTrials>
-  <outputFileName>trials-20.csv</outputFileName>
-  <numThreads>2</numThreads>
+  <numTrials>10</numTrials>
+  <outputFileName>test.csv</outputFileName>
+  <numThreads>1</numThreads>
+  <generateImages>true</generateImages>
 </edu.rutgers.winlab.junsim.Config>
 
