@@ -73,6 +73,12 @@ public class Config {
    * Whether or not to show the graphical display.
    */
   boolean showDisplay = true;
+  
+  /**
+   * Number of worker threads for concurrent execution.  Careful with large numbers
+   * of transmitters!
+   */
+  int numThreads = 0;
 
   public int getNumTransmitters() {
     return numTransmitters;
@@ -161,5 +167,13 @@ public class Config {
 
   public void setOutputFileName(String outputFileName) {
     this.outputFileName = outputFileName;
+  }
+
+  public int getNumThreads() {
+    return numThreads;
+  }
+
+  public void setNumThreads(int numThreads) {
+    this.numThreads = numThreads;
   }
 }

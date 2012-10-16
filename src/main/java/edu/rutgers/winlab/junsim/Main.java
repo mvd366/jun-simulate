@@ -31,9 +31,14 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import javax.swing.JFrame;
 
@@ -49,6 +54,8 @@ public class Main {
 
   static Random rand = new Random(Main.config.randomSeed);
 
+  static ExecutorService workers = null;
+
   public static void main(String[] args) throws IOException {
     if (args.length == 1) {
       System.out.println("Using configuration file " + args[0]);
@@ -59,6 +66,19 @@ public class Main {
       System.out.println("Using built-in default configuration.");
     }
 
+    if (Main.config.numThreads == 0) {
+      workers = Executors.newFixedThreadPool(Runtime.getRuntime()
+          .availableProcessors());
+    } else {
+      workers = Executors.newFixedThreadPool(Main.config.numThreads);
+    }
+
+    Runtime.getRuntime().addShutdownHook(new Thread(){
+      public void run(){
+        Main.workers.shutdownNow();
+      }
+    });
+    
     if (Main.config.showDisplay) {
       doDisplayedResult();
     } else {
@@ -79,12 +99,18 @@ public class Main {
 
     PrintWriter fileWriter = new PrintWriter(new FileWriter(outputFile));
     ExperimentStats[] stats = new ExperimentStats[Main.config.numReceivers];
+    for (int i = 0; i < stats.length; ++i) {
+      stats[i] = new ExperimentStats();
+      stats[i].numberReceivers = i + 1;
+      stats[i].numberTransmitters = Main.config.numTransmitters;
+    }
 
-    fileWriter.println("# Tx, # Rx, # Capture Disks, # Solution Points, Min % Covered, Med. % Covered, Mean % Covered, 95% Coverage, Max % Covered");
-    
-    
+    fileWriter
+        .println("# Tx, # Rx, Min % Covered, Med. % Covered, Mean % Covered, 95% Coverage, Max % Covered");
+
     // Iterate through some number of trials
     for (int trialNumber = 0; trialNumber < Main.config.numTrials; ++trialNumber) {
+      long startTrial = System.currentTimeMillis();
       int numTransmitters = Main.config.numTransmitters;
       // Randomly generate transmitter locations
       Collection<Transmitter> transmitters = generateTransmitterLocations(numTransmitters);
@@ -116,86 +142,53 @@ public class Main {
           }
         }
       }
-      
+
+      List<Future<?>> futures;
+
+      List<ExperimentTask> tasks = new LinkedList<ExperimentTask>();
       for (int numReceivers = 1; numReceivers <= Main.config.numReceivers; ++numReceivers) {
-        Collection<Receiver> receiverPositions = new ConcurrentLinkedQueue<Receiver>();
-        
-        Collection<Point2D> clonePoints = new LinkedList<Point2D>();
-        clonePoints.addAll(solutionPoints);
-        Collection<CaptureDisk> cloneDisks = new LinkedList<CaptureDisk>();
-        cloneDisks.addAll(disks);
-        
-        int totalCaptureDisks = cloneDisks.size();
-        int totalSolutionPoints = clonePoints.size();
+        TaskConfig conf = new TaskConfig();
+        conf.disks = disks;
+        conf.solutionPoints = solutionPoints;
+        conf.numReceivers = numReceivers;
+        ExperimentTask task = new ExperimentTask(conf, stats[numReceivers - 1]);
+        tasks.add(task);
 
-        int m = 0;
-        // Keep going while there are either solution points or capture disks
-        while (m < numReceivers && !clonePoints.isEmpty()
-            && !cloneDisks.isEmpty()) {
-          HashMap<Point2D, Collection<CaptureDisk>> bipartiteGraph = new HashMap<Point2D, Collection<CaptureDisk>>();
-
-          Point2D maxPoint = null;
-          int maxDisks = Integer.MIN_VALUE;
-
-          // For each solution point, map the set of capture disks that contain
-          // it
-          for (Point2D p : clonePoints) {
-            for (CaptureDisk d : cloneDisks) {
-              if (d.disk.contains(p)) {
-                Collection<CaptureDisk> containingPoints = bipartiteGraph
-                    .get(p);
-                if (containingPoints == null) {
-                  containingPoints = new HashSet<CaptureDisk>();
-                  bipartiteGraph.put(p, containingPoints);
-                }
-                containingPoints.add(d);
-                if (containingPoints.size() > maxDisks) {
-                  maxDisks = containingPoints.size();
-                  maxPoint = p;
-                }
-              }
-            }
-          }
-
-          // Remove the highest point and its solution disks
-          if (maxDisks > 0) {
-            Collection<CaptureDisk> removedDisks = bipartiteGraph.get(maxPoint);
-            Receiver r = new Receiver();
-            r.setLocation(maxPoint);
-            r.coveringDisks = removedDisks;
-            receiverPositions.add(r);
-            clonePoints.remove(maxPoint);
-            cloneDisks.removeAll(removedDisks);
-          }
-          // No solutions found?
-          else {
-            break;
-          }
-          ++m;
-        }
-
-        float capturedDisks = totalCaptureDisks - cloneDisks.size();
-        float captureRatio = (capturedDisks / totalCaptureDisks);
-        ExperimentStats s = stats[numReceivers-1];
-        if(s == null){
-          s = new ExperimentStats();
-          s.numberReceivers = numReceivers;
-          s.numberTransmitters = numTransmitters;
-          s.numberCaptureDisks = totalCaptureDisks;
-          s.numberSolutionPoints = totalSolutionPoints;
-          stats[numReceivers-1] = s;
-        }
-        s.addCoverage(captureRatio);
-        
       } // End for number of receivers
-      
 
+      try {
+        // The following call will block utnil ALL tasks are complete
+        workers.invokeAll(tasks);
+      } catch (InterruptedException e) {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+      }
+      for(ExperimentTask t : tasks){
+        t.config.disks = null;
+        t.config.solutionPoints = null;
+      }
+      tasks.clear();
+
+      long endTrial = System.currentTimeMillis();
+      System.out.println("Completed trial " + (trialNumber+1) +"/" + Main.config.numTrials + " in " + (endTrial-startTrial) + "ms.");
     } // End for number of trials
-    // # Tx, # Rx, # Capture Disks, # Solution Points, Min % Covered, Med. % Covered, Mean % Covered, Max % Covered, 95% Coverage
-    for(ExperimentStats s : stats){
-      fileWriter.printf("%d, %d, %d, %d, %.4f, %.4f, %.4f, %.4f, %.4f\n",s.numberTransmitters, s.numberReceivers,
-          s.numberCaptureDisks, s.numberSolutionPoints, s.getMinCoverage(), s. getMedianCoverage(), 
-          s.getMeanCoverage(), s.get95Percentile(), s.getMaxCoverage());
+
+    workers.shutdown();
+    System.out.println("Waiting up to 60 seconds for threadpool to terminate.");
+    try {
+      workers.awaitTermination(60, TimeUnit.SECONDS);
+    } catch (InterruptedException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
+
+    // # Tx, # Rx, Min % Covered, Med. %
+    // Covered, Mean % Covered, Max % Covered, 95% Coverage
+    for (ExperimentStats s : stats) {
+      fileWriter.printf("%d, %d, %.4f, %.4f, %.4f, %.4f, %.4f\n",
+          s.numberTransmitters, s.numberReceivers, s.getMinCoverage(),
+          s.getMedianCoverage(), s.getMeanCoverage(), s.get95Percentile(),
+          s.getMaxCoverage());
     }
     fileWriter.flush();
     fileWriter.close();
