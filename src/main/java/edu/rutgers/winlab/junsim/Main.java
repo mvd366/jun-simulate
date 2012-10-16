@@ -17,11 +17,21 @@
  */
 package edu.rutgers.winlab.junsim;
 
+import java.awt.Dimension;
 import java.awt.geom.Ellipse2D;
+import java.awt.geom.Point2D;
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.Random;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+
+import javax.swing.JFrame;
 
 import com.thoughtworks.xstream.XStream;
 
@@ -33,7 +43,7 @@ public class Main {
 
   static Config config;
 
-  public static void main(String[] args) {
+  public static void main(String[] args) throws IOException {
     if (args.length < 1) {
       System.err.println("Please provide a configuration file.");
       return;
@@ -43,10 +53,125 @@ public class Main {
     File configFile = new File(args[0]);
     Main.config = (Config) configReader.fromXML(configFile);
 
-    Transmitter[] transmitters = generateTransmitterLocations(Main.config.numTransmitters);
-    Collection<CaptureDisk>disks = new ConcurrentLinkedQueue<CaptureDisk>();
-    
-    
+    DisplayPanel display = new DisplayPanel();
+    display.setPreferredSize(new Dimension(640, 480));
+
+    JFrame frame = new JFrame();
+
+    frame.setContentPane(display);
+    frame.pack();
+    if (Main.config.showDisplay) {
+      frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+      frame.setVisible(true);
+
+    } else {
+      frame.dispose();
+    }
+
+    Collection<Transmitter> transmitters = generateTransmitterLocations(Main.config.numTransmitters);
+    BufferedReader userPrompt = new BufferedReader(new InputStreamReader(
+        System.in));
+    if (Main.config.showDisplay) {
+      display.setTransmitters(transmitters);
+      System.out.println("[Transmitters]");
+      userPrompt.readLine();
+    }
+
+    Collection<CaptureDisk> disks = new HashSet<CaptureDisk>();
+    // Compute all possible capture disks
+    for (Transmitter t1 : transmitters) {
+      for (Transmitter t2 : transmitters) {
+        CaptureDisk someDisk = generateCaptureDisk(t1, t2);
+        if (someDisk != null) {
+          disks.add(someDisk);
+        }
+      }
+    }
+
+    if (Main.config.showDisplay) {
+      display.setCaptureDisks(disks);
+      System.out.println("[Capture Disks]");
+      userPrompt.readLine();
+    }
+
+    // Add center points of all capture disks as solutions
+    Collection<Point2D> solutionPoints = new HashSet<Point2D>();
+    for (CaptureDisk disk : disks) {
+      solutionPoints.add(new Point2D.Float((float) disk.disk.getCenterX(),
+          (float) disk.disk.getCenterY()));
+    }
+
+    // Add intersection of all capture disks as solutions
+    for (CaptureDisk d1 : disks) {
+      for (CaptureDisk d2 : disks) {
+        Collection<Point2D> intersections = generateIntersections(d1, d2);
+        if (intersections != null && !intersections.isEmpty()) {
+          solutionPoints.addAll(intersections);
+        }
+      }
+    }
+    if (Main.config.showDisplay) {
+      display.setSolutionPoints(solutionPoints);
+      System.out.println("[Solution Points]");
+      userPrompt.readLine();
+    }
+
+    Collection<Receiver> receiverPositions = new ConcurrentLinkedQueue<Receiver>();
+
+    int m = 0;
+
+    // Keep going while there are either solution points or capture disks
+    while (m < Main.config.numReceivers && !solutionPoints.isEmpty()
+        && !disks.isEmpty()) {
+      ConcurrentHashMap<Point2D, Collection<CaptureDisk>> bipartiteGraph = new ConcurrentHashMap<Point2D, Collection<CaptureDisk>>();
+      ++m;
+      Point2D maxPoint = null;
+      int maxDisks = Integer.MIN_VALUE;
+
+      // For each solution point, map the set of capture disks that contain it
+      for (Point2D p : solutionPoints) {
+        for (CaptureDisk d : disks) {
+          if (d.disk.contains(p)) {
+            Collection<CaptureDisk> containingPoints = bipartiteGraph.get(p);
+            if (containingPoints == null) {
+              containingPoints = new HashSet<CaptureDisk>();
+              bipartiteGraph.put(p, containingPoints);
+            }
+            containingPoints.add(d);
+            if (containingPoints.size() > maxDisks) {
+              maxDisks = containingPoints.size();
+              maxPoint = p;
+            }
+          }
+        }
+      }
+
+      // Remove the highest point and its solution disks
+      if (maxDisks > 0) {
+        Collection<CaptureDisk> removedDisks = bipartiteGraph.get(maxPoint);
+        Receiver r = new Receiver();
+        r.setLocation(maxPoint);
+        r.coveringDisks = removedDisks;
+        receiverPositions.add(r);
+        solutionPoints.remove(maxPoint);
+        disks.removeAll(removedDisks);
+      }
+      // No solutions found?
+      else {
+        break;
+      }
+    }
+
+    display.setReceiverPoints(receiverPositions);
+
+    System.out.println("*********************");
+    System.out.println("Press [ENTER] to QUIT");
+    System.out.println("*********************");
+    userPrompt.readLine();
+    if (Main.config.showDisplay) {
+      frame.setVisible(false);
+      frame.dispose();
+    }
   }
 
   /**
@@ -57,13 +182,18 @@ public class Main {
    *          the number of transmitters to generate.
    * @return an array of {@code Transmitter} objects randomly positioned.
    */
-  static Transmitter[] generateTransmitterLocations(final int numTransmitters) {
+  static Collection<Transmitter> generateTransmitterLocations(
+      final int numTransmitters) {
     Random rand = new Random(Main.config.randomSeed);
-    Transmitter[] txers = new Transmitter[numTransmitters];
+    LinkedList<Transmitter> txers = new LinkedList<Transmitter>();
+    Transmitter txer = null;
     for (int i = 0; i < numTransmitters; ++i) {
-      txers[i] = new Transmitter();
-      txers[i].x = rand.nextFloat() * Main.config.squareSize;
-      txers[i].y = rand.nextFloat() * Main.config.squareSize;
+      txer = new Transmitter();
+      txer.x = (Main.config.getUniverseSize() - Main.config.getSquareSize()) * .5f + rand.nextFloat()
+          * Main.config.getSquareSize();
+      txer.y = (Main.config.getUniverseSize() - Main.config.getSquareSize()) * .5f + rand.nextFloat()
+          * Main.config.getSquareSize();
+      txers.add(txer);
     }
     return txers;
   }
@@ -76,14 +206,18 @@ public class Main {
    *          the captured transmitter.
    * @param t2
    *          the uncaptured (colliding) transmitter.
-   * @param r
-   *          the receiver that captures the packet.
    * @return the capture disk of transmitter t1, else {@code null} if non
    *         exists.
    */
-  static Ellipse2D generateCaptureDisk(Transmitter t1, Transmitter t2,
-      Receiver r) {
-    Ellipse2D.Float captureDisk = new Ellipse2D.Float();
+  static CaptureDisk generateCaptureDisk(final Transmitter t1,
+      final Transmitter t2) {
+    if (t1 == t2 || t1.equals(t2)) {
+      return null;
+    }
+    CaptureDisk captureDisk = new CaptureDisk();
+    captureDisk.disk = new Ellipse2D.Float();
+    captureDisk.t1 = t1;
+    captureDisk.t2 = t2;
     double betaSquared = Math.pow(Main.config.beta, 2);
     double denominator = 1 - betaSquared;
 
@@ -95,11 +229,67 @@ public class Main {
 
     double radius = (Main.config.beta * euclideanDistance) / denominator;
 
-    captureDisk.height = (float) (radius * 2);
-    captureDisk.width = (float) (radius * 2);
-    captureDisk.x = (float) (centerX - radius);
-    captureDisk.y = (float) (centerY - radius);
+    captureDisk.disk.height = (float) (radius * 2);
+    captureDisk.disk.width = (float) (radius * 2);
+    captureDisk.disk.x = (float) (centerX - radius);
+    captureDisk.disk.y = (float) (centerY - radius);
 
     return captureDisk;
+  }
+
+  /**
+   * Generates the intersection points of two circles, IF they intersect.
+   * 
+   * @param cd1
+   *          the first circle.
+   * @param cd2
+   *          the second circle.
+   * @return a {@code Collection} containing the intersection points, or
+   *         {@code null} if there are no intersections.
+   */
+  static Collection<Point2D> generateIntersections(final CaptureDisk cd1,
+      final CaptureDisk cd2) {
+    // If these are the same disks, don't check their intersection
+    if (cd1.equals(cd2) || cd1 == cd2) {
+      return null;
+    }
+
+    double d = Math.sqrt(Math.pow(
+        cd1.disk.getCenterX() - cd2.disk.getCenterX(), 2)
+        + Math.pow(cd1.disk.getCenterY() - cd2.disk.getCenterY(), 2));
+
+    double r1 = cd1.disk.getWidth() / 2;
+    double r2 = cd2.disk.getWidth() / 2;
+    double d1 = (Math.pow(r1, 2) - Math.pow(r2, 2) + Math.pow(d, 2)) / (2 * d);
+
+    // Circles are too far apart to overlap.
+    if (d > (r1 + r2)) {
+      return null;
+    }
+
+    double h = Math.sqrt(Math.pow(r1, 2) - Math.pow(d1, 2));
+
+    double x3 = cd1.disk.getCenterX()
+        + (d1 * (cd2.disk.getCenterX() - cd1.disk.getCenterX())) / d;
+
+    double y3 = cd1.disk.getCenterY()
+        + (d1 * (cd2.disk.getCenterY() - cd1.disk.getCenterY())) / d;
+
+    double x4i = x3 + (h * (cd2.disk.getCenterY() - cd1.disk.getCenterY())) / d;
+    double y4i = y3 - (h * (cd2.disk.getCenterX() - cd1.disk.getCenterX())) / d;
+    double x4ii = x3 - (h * (cd2.disk.getCenterY() - cd1.disk.getCenterY()))
+        / d;
+    double y4ii = y3 + (h * (cd2.disk.getCenterX() - cd1.disk.getCenterX()))
+        / d;
+
+    if (Double.isNaN(x4i) || Double.isNaN(y4i) || Double.isNaN(x4ii)
+        || Double.isNaN(y4ii)) {
+      return null;
+    }
+
+    LinkedList<Point2D> points = new LinkedList<Point2D>();
+    points.add(new Point2D.Float((float) x4i, (float) y4i));
+    points.add(new Point2D.Float((float) x4ii, (float) y4ii));
+    return points;
   }
 }

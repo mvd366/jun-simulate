@@ -17,12 +17,35 @@
  */
 package edu.rutgers.winlab.junsim;
 
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.geom.AffineTransform;
+import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
+import java.util.Collection;
+import java.util.LinkedList;
 
 /**
  * @author Robert Moore
  *
  */
-public class Receiver extends Point2D.Float {
-
+public class Receiver extends Point2D.Float implements Drawable{
+  
+  Collection<CaptureDisk> coveringDisks = new LinkedList<CaptureDisk>();
+  
+  public void draw(Graphics2D g){
+    AffineTransform origTransform = g.getTransform();
+    Color origColor = g.getColor();
+//    g.translate((int)this.getX(),(int)this.getY());
+   
+    g.setColor(Color.YELLOW);
+    for(CaptureDisk d : this.coveringDisks){
+      Line2D line = new Line2D.Double(d.disk.getCenterX(), d.disk.getCenterY(), this.getX(), this.getY());
+      g.draw(line);
+    }
+    
+    g.setColor(origColor);
+    g.drawString("R"+this.coveringDisks.size(), (int)this.getX(),(int)this.getY());
+    g.setTransform(origTransform);
+  }
 }

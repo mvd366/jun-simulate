@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2012 Robert Moore and Rutgers University
+ * Owl Platform
+ * Copyright (C) 2012 Robert Moore and the Owl Platform
  * 
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,24 +19,11 @@
 package edu.rutgers.winlab.junsim;
 
 import java.awt.Graphics2D;
-import java.awt.geom.AffineTransform;
-import java.awt.geom.Point2D;
 
 /**
  * @author Robert Moore
  *
  */
-public class Transmitter extends Point2D.Float implements Drawable{
-
-  
-  @Override
-  public void draw(Graphics2D g) {
-    AffineTransform origTransform = g.getTransform();
-    g.translate((int)this.getX(),(int)this.getY());
-    g.drawString("T", 0,0);
-    g.setTransform(origTransform);
-    
-  }
-  
-
+public interface Drawable {
+  public void draw(Graphics2D g);
 }

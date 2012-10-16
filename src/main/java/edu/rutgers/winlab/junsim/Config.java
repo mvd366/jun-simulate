@@ -17,14 +17,16 @@
  */
 package edu.rutgers.winlab.junsim;
 
+import com.thoughtworks.xstream.annotations.XStreamOmitField;
+
 /**
  * @author Robert Moore
- *
+ * 
  */
 public class Config {
   /**
-   * Constant for determining the capture disk of some transmitter in
-   * relation to another.
+   * Constant for determining the capture disk of some transmitter in relation
+   * to another.
    */
   float beta = 0.5f;
   /**
@@ -36,9 +38,8 @@ public class Config {
    */
   int numReceivers = 1;
   /**
-   * Scaling factor for the power of the radio.
-   * Power at distance r from the transmitter is equal to 
-   * radioPower/(r^radioAlpha)
+   * Scaling factor for the power of the radio. Power at distance r from the
+   * transmitter is equal to radioPower/(r^radioAlpha)
    */
   float radioPower = 2;
   /**
@@ -46,50 +47,93 @@ public class Config {
    */
   float radioAlpha = 2.68f;
   /**
-   * The length of one side of the "universe" square.
+   * The length of one side of the square where transmitters can be located.
    */
-  float squareSize = 1000f;
+  private float squareSize = 100f;
   
+  
+  float universeSize = this.squareSize*1.5f;
+
   /**
    * Seed value for randomizing.
    */
   long randomSeed = 0l;
   
-  
+  /**
+   * Whether or not to show the graphical display.
+   */
+  boolean showDisplay = true;
+
   public int getNumTransmitters() {
     return numTransmitters;
   }
+
   public void setNumTransmitters(int numTransmitters) {
     this.numTransmitters = numTransmitters;
   }
+
   public int getNumReceivers() {
     return numReceivers;
   }
+
   public void setNumReceivers(int numReceivers) {
     this.numReceivers = numReceivers;
   }
+
   public float getRadioPower() {
     return radioPower;
   }
+
   public void setRadioPower(float radioPower) {
     this.radioPower = radioPower;
   }
+
   public float getRadioAlpha() {
     return radioAlpha;
   }
+
   public void setRadioAlpha(float radioAlpha) {
     this.radioAlpha = radioAlpha;
   }
+
   public float getSquareSize() {
     return squareSize;
   }
+
   public void setSquareSize(float squareSize) {
     this.squareSize = squareSize;
+    this.universeSize = this.squareSize*1.5f;
   }
+
   public long getRandomSeed() {
     return randomSeed;
   }
+
   public void setRandomSeed(long randomSeed) {
     this.randomSeed = randomSeed;
+  }
+
+  public float getBeta() {
+    return beta;
+  }
+
+  public void setBeta(float beta) {
+    this.beta = beta;
+  }
+
+  public boolean isShowDisplay() {
+    return showDisplay;
+  }
+
+  public void setShowDisplay(boolean showDisplay) {
+    this.showDisplay = showDisplay;
+  }
+
+  public float getUniverseSize() {
+    return universeSize;
+  }
+
+  public void setUniverseSize(float universeSize) {
+    this.universeSize = universeSize;
   }
 }

@@ -17,17 +17,19 @@
  */
 package edu.rutgers.winlab.junsim;
 
+import java.awt.Graphics2D;
+import java.awt.geom.AffineTransform;
 import java.awt.geom.Ellipse2D;
 
 /**
  * @author Robert Moore
- *
+ * 
  */
-public class CaptureDisk {
+public class CaptureDisk implements Drawable {
   /**
    * The capture disk of (t1,t2);
    */
-  public Ellipse2D disk;
+  public Ellipse2D.Float disk;
   /**
    * The transmitter that successfully transmits a packet.
    */
@@ -36,4 +38,31 @@ public class CaptureDisk {
    * The transmitter that collides.
    */
   public Transmitter t2;
+
+  @Override
+  public boolean equals(Object o) {
+    if (o instanceof CaptureDisk) {
+      return this.equals((CaptureDisk) o);
+    }
+    return super.equals(o);
+  }
+
+  public boolean equals(CaptureDisk c) {
+    if (this.t1.equals(c.t1) && this.t2.equals(c.t2)) {
+      return true;
+    }
+    return this.disk.equals(c.disk);
+  }
+
+  public void draw(Graphics2D g) {
+    AffineTransform origTransform = g.getTransform();
+    // g.translate(this.disk.getMinX(), this.disk.getMinY());
+    g.draw(this.disk);
+    g.setTransform(origTransform);
+  }
+
+  @Override
+  public int hashCode() {
+    return this.disk.hashCode();
+  }
 }

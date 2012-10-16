@@ -1,10 +1,12 @@
 <edu.rutgers.winlab.junsim.Config>
   <beta>0.5</beta>
-  <numTransmitters>1</numTransmitters>
-  <numReceivers>1</numReceivers>
+  <numTransmitters>3</numTransmitters>
+  <numReceivers>2</numReceivers>
   <radioPower>2.0</radioPower>
   <radioAlpha>2.68</radioAlpha>
-  <squareSize>1000.0</squareSize>
-  <randomSeed>0</randomSeed>
+  <squareSize>500.0</squareSize>
+  <universeSize>500.0</universeSize>
+  <randomSeed>3</randomSeed>
+  <showDisplay>true</showDisplay>
 </edu.rutgers.winlab.junsim.Config>
 
