@@ -57,6 +57,35 @@ configuration file is "myconfig.xml", then run the application like this:
 you should see output on the console almost immediately.</p>
 
 <h2>Screenshots</h2>
+<p> The screenshots below are available when the configuration parameter
+<code>generateImages</code> is set to <code>true</code>. The simulator will
+generate 1920x1080 px PNG images any time it finds a coverage below 99.9% when
+a large number of receivers are required (more than half the number of
+transmitters).</p>
+
+<p>The meaning of the different components isn't exactly clear unless you
+understand the algorithm, but some of them look cool (at least for math), so I
+thought I would include them as a little treat.</p>
+
+<h3>Screenshot Legend</h3>
+<ul>
+  <li>White "T" - Barely visible unless you look, this is the location of the
+  transmitters.</li>
+  <li>Blue "R" - This is where a receiver was chosen to be placed.  The number
+  next to it indicates how many capture disks contain it. For example, "R80"
+  means that the point is contained in 80 capture disks.</li>
+  <li>Green Dots - These are the centers and intersection points of the
+  capture disks.  These are treated as possible solution points for placing
+  receivers, and each one is evaluated.  The ones shown in the screenshots were
+  not chosen.</li>
+  <li>Red Circles - These are capture disks that don't include any chosen
+  receivers.  This is what I was looking for when I wrote the visualization,
+  because I wanted to see why the coverage rate was so low even with a lot of
+  receivers.</li>
+  <li>Yellow Lines - These originate at the receiver locations and terminate
+  at the centers of the capture disks that contain the receiver.</li>
+</ul>
+
 <table>
   <tr>
     <td><a href="images/screenshot1.png"><img src="images/screenshot1-tn.png" height="225" width="400" alt="Screenshot 1 (15 Transmitters, 8 Receivers)"></img></a></td>
