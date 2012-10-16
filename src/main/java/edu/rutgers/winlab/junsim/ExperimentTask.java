@@ -49,6 +49,8 @@ public class ExperimentTask implements Callable<Boolean> {
   @Override
   public Boolean call() {
 
+    System.out.println("[" + this.config.trialNumber + "] Generating capture disks.");
+    
     Collection<CaptureDisk> disks = new HashSet<CaptureDisk>();
     // Compute all possible capture disks
     for (Transmitter t1 : this.config.transmitters) {
@@ -59,7 +61,7 @@ public class ExperimentTask implements Callable<Boolean> {
         }
       }
     }
-
+    System.out.println("[" + this.config.trialNumber + "] Adding center point solutions.");
     // Add center points of all capture disks as solutions
     Collection<Point2D> solutionPoints = new HashSet<Point2D>();
     for (CaptureDisk disk : disks) {
@@ -67,6 +69,7 @@ public class ExperimentTask implements Callable<Boolean> {
           (float) disk.disk.getCenterY()));
     }
 
+    System.out.println("[" + this.config.trialNumber + "] Generating intersection solutions.");
     // Add intersection of all capture disks as solutions
     for (CaptureDisk d1 : disks) {
       for (CaptureDisk d2 : disks) {
@@ -86,6 +89,7 @@ public class ExperimentTask implements Callable<Boolean> {
     Collection<Receiver> receivers = new LinkedList<Receiver>();
     while (m < this.config.numReceivers && !solutionPoints.isEmpty()
         && !disks.isEmpty()) {
+      System.out.println("[" + this.config.trialNumber + "] Calculating position for receiver " + (m+1) + ".");
       HashMap<Point2D, Collection<CaptureDisk>> bipartiteGraph = new HashMap<Point2D, Collection<CaptureDisk>>();
 
       Point2D maxPoint = null;
