@@ -21,9 +21,12 @@ import java.awt.Dimension;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.Point2D;
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -41,17 +44,137 @@ import com.thoughtworks.xstream.XStream;
  */
 public class Main {
 
-  static Config config;
+  static Config config = new Config();
+
+  static Random rand = new Random(Main.config.randomSeed);
 
   public static void main(String[] args) throws IOException {
-    if (args.length < 1) {
-      System.err.println("Please provide a configuration file.");
+    if (args.length == 1) {
+      System.out.println("Using configuration file " + args[0]);
+      XStream configReader = new XStream();
+      File configFile = new File(args[0]);
+      Main.config = (Config) configReader.fromXML(configFile);
+    } else {
+      System.out.println("Using built-in default configuration.");
+    }
+
+    if (Main.config.showDisplay) {
+      doDisplayedResult();
+    } else {
+      doSimulation();
+    }
+  }
+
+  public static void doSimulation() throws IOException {
+    File outputFile = new File(Main.config.outputFileName);
+    if (!outputFile.exists()) {
+      outputFile.createNewFile();
+    }
+    if (!outputFile.canWrite()) {
+      System.err.println("Unable to write to " + Main.config.outputFileName
+          + ". Please check file system permissions.");
       return;
     }
 
-    XStream configReader = new XStream();
-    File configFile = new File(args[0]);
-    Main.config = (Config) configReader.fromXML(configFile);
+    PrintWriter fileWriter = new PrintWriter(new FileWriter(outputFile));
+
+    fileWriter.println("# Tx, # Rx, # Capture Disks, # Solution Points, Min % Covered, Med. % Covered, Mean % Covered, Max % Covered, 95% Coverage");
+    
+    // Iterate through some number of trials
+    for (int trialNumber = 0; trialNumber < Main.config.numTrials; ++trialNumber) {
+      // Randomly generate transmitter locations
+      Collection<Transmitter> transmitters = generateTransmitterLocations(Main.config.numTransmitters);
+
+      Collection<CaptureDisk> disks = new HashSet<CaptureDisk>();
+      // Compute all possible capture disks
+      for (Transmitter t1 : transmitters) {
+        for (Transmitter t2 : transmitters) {
+          CaptureDisk someDisk = generateCaptureDisk(t1, t2);
+          if (someDisk != null) {
+            disks.add(someDisk);
+          }
+        }
+      }
+
+      // Add center points of all capture disks as solutions
+      Collection<Point2D> solutionPoints = new HashSet<Point2D>();
+      for (CaptureDisk disk : disks) {
+        solutionPoints.add(new Point2D.Float((float) disk.disk.getCenterX(),
+            (float) disk.disk.getCenterY()));
+      }
+
+      // Add intersection of all capture disks as solutions
+      for (CaptureDisk d1 : disks) {
+        for (CaptureDisk d2 : disks) {
+          Collection<Point2D> intersections = generateIntersections(d1, d2);
+          if (intersections != null && !intersections.isEmpty()) {
+            solutionPoints.addAll(intersections);
+          }
+        }
+      }
+
+
+      
+      for (int numReceivers = 1; numReceivers <= Main.config.numReceivers; ++numReceivers) {
+        Collection<Receiver> receiverPositions = new ConcurrentLinkedQueue<Receiver>();
+        int totalCaptureDisks = disks.size();
+
+        int m = 0;
+        // Keep going while there are either solution points or capture disks
+        while (m < numReceivers && !solutionPoints.isEmpty()
+            && !disks.isEmpty()) {
+          ConcurrentHashMap<Point2D, Collection<CaptureDisk>> bipartiteGraph = new ConcurrentHashMap<Point2D, Collection<CaptureDisk>>();
+          ++m;
+          Point2D maxPoint = null;
+          int maxDisks = Integer.MIN_VALUE;
+
+          // For each solution point, map the set of capture disks that contain
+          // it
+          for (Point2D p : solutionPoints) {
+            for (CaptureDisk d : disks) {
+              if (d.disk.contains(p)) {
+                Collection<CaptureDisk> containingPoints = bipartiteGraph
+                    .get(p);
+                if (containingPoints == null) {
+                  containingPoints = new HashSet<CaptureDisk>();
+                  bipartiteGraph.put(p, containingPoints);
+                }
+                containingPoints.add(d);
+                if (containingPoints.size() > maxDisks) {
+                  maxDisks = containingPoints.size();
+                  maxPoint = p;
+                }
+              }
+            }
+          }
+
+          // Remove the highest point and its solution disks
+          if (maxDisks > 0) {
+            Collection<CaptureDisk> removedDisks = bipartiteGraph.get(maxPoint);
+            Receiver r = new Receiver();
+            r.setLocation(maxPoint);
+            r.coveringDisks = removedDisks;
+            receiverPositions.add(r);
+            solutionPoints.remove(maxPoint);
+            disks.removeAll(removedDisks);
+          }
+          // No solutions found?
+          else {
+            break;
+          }
+        }
+
+        float capturedDisks = totalCaptureDisks - disks.size();
+        float captureRatio = (capturedDisks / totalCaptureDisks);
+      } // End for number of receivers
+      
+
+    } // End for number of trials
+    // # Tx, # Rx, # Capture Disks, # Solution Points, Min % Covered, Med. % Covered, Mean % Covered, Max % Covered, 95% Coverage
+//    fileWriter.println()
+  }
+
+  public static void doDisplayedResult() throws IOException {
 
     DisplayPanel display = new DisplayPanel();
     display.setPreferredSize(new Dimension(640, 480));
@@ -60,22 +183,16 @@ public class Main {
 
     frame.setContentPane(display);
     frame.pack();
-    if (Main.config.showDisplay) {
-      frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-      frame.setVisible(true);
 
-    } else {
-      frame.dispose();
-    }
+    frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+    frame.setVisible(true);
 
     Collection<Transmitter> transmitters = generateTransmitterLocations(Main.config.numTransmitters);
     BufferedReader userPrompt = new BufferedReader(new InputStreamReader(
         System.in));
-    if (Main.config.showDisplay) {
-      display.setTransmitters(transmitters);
-      System.out.println("[Transmitters]");
-      userPrompt.readLine();
-    }
+    display.setTransmitters(transmitters);
+    System.out.println("[Transmitters]");
+    userPrompt.readLine();
 
     Collection<CaptureDisk> disks = new HashSet<CaptureDisk>();
     // Compute all possible capture disks
@@ -88,11 +205,9 @@ public class Main {
       }
     }
 
-    if (Main.config.showDisplay) {
-      display.setCaptureDisks(disks);
-      System.out.println("[Capture Disks]");
-      userPrompt.readLine();
-    }
+    display.setCaptureDisks(disks);
+    System.out.println("[Capture Disks]");
+    userPrompt.readLine();
 
     // Add center points of all capture disks as solutions
     Collection<Point2D> solutionPoints = new HashSet<Point2D>();
@@ -110,15 +225,20 @@ public class Main {
         }
       }
     }
-    if (Main.config.showDisplay) {
-      display.setSolutionPoints(solutionPoints);
-      System.out.println("[Solution Points]");
-      userPrompt.readLine();
-    }
+    display.setSolutionPoints(solutionPoints);
+    System.out.println("[Solution Points]");
+    userPrompt.readLine();
 
     Collection<Receiver> receiverPositions = new ConcurrentLinkedQueue<Receiver>();
 
     int m = 0;
+
+    int totalCaptureDisks = disks.size();
+
+    System.out.println("Transmitters: " + Main.config.numTransmitters);
+    System.out.println("Receivers: " + Main.config.numReceivers);
+    System.out.println("Capture disks: " + totalCaptureDisks);
+    System.out.println("Solution points: " + solutionPoints.size());
 
     // Keep going while there are either solution points or capture disks
     while (m < Main.config.numReceivers && !solutionPoints.isEmpty()
@@ -164,6 +284,12 @@ public class Main {
 
     display.setReceiverPoints(receiverPositions);
 
+    float capturedDisks = totalCaptureDisks - disks.size();
+    float captureRatio = (capturedDisks / totalCaptureDisks);
+
+    System.out.printf("%.2f%% capture rate (%d/%d)\n", captureRatio * 100,
+        (int) capturedDisks, totalCaptureDisks);
+
     System.out.println("*********************");
     System.out.println("Press [ENTER] to QUIT");
     System.out.println("*********************");
@@ -184,15 +310,15 @@ public class Main {
    */
   static Collection<Transmitter> generateTransmitterLocations(
       final int numTransmitters) {
-    Random rand = new Random(Main.config.randomSeed);
+
     LinkedList<Transmitter> txers = new LinkedList<Transmitter>();
     Transmitter txer = null;
     for (int i = 0; i < numTransmitters; ++i) {
       txer = new Transmitter();
-      txer.x = (Main.config.getUniverseSize() - Main.config.getSquareSize()) * .5f + rand.nextFloat()
-          * Main.config.getSquareSize();
-      txer.y = (Main.config.getUniverseSize() - Main.config.getSquareSize()) * .5f + rand.nextFloat()
-          * Main.config.getSquareSize();
+      txer.x = (Main.config.getUniverseSize() - Main.config.getSquareSize())
+          * .5f + Main.rand.nextFloat() * Main.config.getSquareSize();
+      txer.y = (Main.config.getUniverseSize() - Main.config.getSquareSize())
+          * .5f + Main.rand.nextFloat() * Main.config.getSquareSize();
       txers.add(txer);
     }
     return txers;

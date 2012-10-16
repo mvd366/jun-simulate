@@ -60,6 +60,16 @@ public class Config {
   long randomSeed = 0l;
   
   /**
+   * Number of simulation trials to run in non-display mode.
+   */
+  long numTrials = 1l;
+  
+  /**
+   * File name for output statistics in non-display mode.
+   */
+  String outputFileName = "to-simulate.txt";
+  
+  /**
    * Whether or not to show the graphical display.
    */
   boolean showDisplay = true;
@@ -135,5 +145,21 @@ public class Config {
 
   public void setUniverseSize(float universeSize) {
     this.universeSize = universeSize;
+  }
+
+  public long getNumTrials() {
+    return numTrials;
+  }
+
+  public void setNumTrials(long numTrials) {
+    this.numTrials = numTrials;
+  }
+
+  public String getOutputFileName() {
+    return outputFileName;
+  }
+
+  public void setOutputFileName(String outputFileName) {
+    this.outputFileName = outputFileName;
   }
 }
