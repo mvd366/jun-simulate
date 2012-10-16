@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Random;
@@ -77,13 +78,16 @@ public class Main {
     }
 
     PrintWriter fileWriter = new PrintWriter(new FileWriter(outputFile));
+    ExperimentStats[] stats = new ExperimentStats[Main.config.numReceivers];
 
-    fileWriter.println("# Tx, # Rx, # Capture Disks, # Solution Points, Min % Covered, Med. % Covered, Mean % Covered, Max % Covered, 95% Coverage");
+    fileWriter.println("# Tx, # Rx, # Capture Disks, # Solution Points, Min % Covered, Med. % Covered, Mean % Covered, 95% Coverage, Max % Covered");
+    
     
     // Iterate through some number of trials
     for (int trialNumber = 0; trialNumber < Main.config.numTrials; ++trialNumber) {
+      int numTransmitters = Main.config.numTransmitters;
       // Randomly generate transmitter locations
-      Collection<Transmitter> transmitters = generateTransmitterLocations(Main.config.numTransmitters);
+      Collection<Transmitter> transmitters = generateTransmitterLocations(numTransmitters);
 
       Collection<CaptureDisk> disks = new HashSet<CaptureDisk>();
       // Compute all possible capture disks
@@ -112,26 +116,31 @@ public class Main {
           }
         }
       }
-
-
       
       for (int numReceivers = 1; numReceivers <= Main.config.numReceivers; ++numReceivers) {
         Collection<Receiver> receiverPositions = new ConcurrentLinkedQueue<Receiver>();
-        int totalCaptureDisks = disks.size();
+        
+        Collection<Point2D> clonePoints = new LinkedList<Point2D>();
+        clonePoints.addAll(solutionPoints);
+        Collection<CaptureDisk> cloneDisks = new LinkedList<CaptureDisk>();
+        cloneDisks.addAll(disks);
+        
+        int totalCaptureDisks = cloneDisks.size();
+        int totalSolutionPoints = clonePoints.size();
 
         int m = 0;
         // Keep going while there are either solution points or capture disks
-        while (m < numReceivers && !solutionPoints.isEmpty()
-            && !disks.isEmpty()) {
-          ConcurrentHashMap<Point2D, Collection<CaptureDisk>> bipartiteGraph = new ConcurrentHashMap<Point2D, Collection<CaptureDisk>>();
-          ++m;
+        while (m < numReceivers && !clonePoints.isEmpty()
+            && !cloneDisks.isEmpty()) {
+          HashMap<Point2D, Collection<CaptureDisk>> bipartiteGraph = new HashMap<Point2D, Collection<CaptureDisk>>();
+
           Point2D maxPoint = null;
           int maxDisks = Integer.MIN_VALUE;
 
           // For each solution point, map the set of capture disks that contain
           // it
-          for (Point2D p : solutionPoints) {
-            for (CaptureDisk d : disks) {
+          for (Point2D p : clonePoints) {
+            for (CaptureDisk d : cloneDisks) {
               if (d.disk.contains(p)) {
                 Collection<CaptureDisk> containingPoints = bipartiteGraph
                     .get(p);
@@ -155,23 +164,41 @@ public class Main {
             r.setLocation(maxPoint);
             r.coveringDisks = removedDisks;
             receiverPositions.add(r);
-            solutionPoints.remove(maxPoint);
-            disks.removeAll(removedDisks);
+            clonePoints.remove(maxPoint);
+            cloneDisks.removeAll(removedDisks);
           }
           // No solutions found?
           else {
             break;
           }
+          ++m;
         }
 
-        float capturedDisks = totalCaptureDisks - disks.size();
+        float capturedDisks = totalCaptureDisks - cloneDisks.size();
         float captureRatio = (capturedDisks / totalCaptureDisks);
+        ExperimentStats s = stats[numReceivers-1];
+        if(s == null){
+          s = new ExperimentStats();
+          s.numberReceivers = numReceivers;
+          s.numberTransmitters = numTransmitters;
+          s.numberCaptureDisks = totalCaptureDisks;
+          s.numberSolutionPoints = totalSolutionPoints;
+          stats[numReceivers-1] = s;
+        }
+        s.addCoverage(captureRatio);
+        
       } // End for number of receivers
       
 
     } // End for number of trials
     // # Tx, # Rx, # Capture Disks, # Solution Points, Min % Covered, Med. % Covered, Mean % Covered, Max % Covered, 95% Coverage
-//    fileWriter.println()
+    for(ExperimentStats s : stats){
+      fileWriter.printf("%d, %d, %d, %d, %.4f, %.4f, %.4f, %.4f, %.4f\n",s.numberTransmitters, s.numberReceivers,
+          s.numberCaptureDisks, s.numberSolutionPoints, s.getMinCoverage(), s. getMedianCoverage(), 
+          s.getMeanCoverage(), s.get95Percentile(), s.getMaxCoverage());
+    }
+    fileWriter.flush();
+    fileWriter.close();
   }
 
   public static void doDisplayedResult() throws IOException {
