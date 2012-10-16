@@ -156,7 +156,7 @@ public class ExperimentTask implements Callable<Boolean> {
 
         display.render(g, img.getWidth(), img.getHeight());
 
-        File imageFile = new File("t" + this.config.numTransmitters + "_r"
+        File imageFile = new File("s"+Main.config.randomSeed + "_t" + this.config.numTransmitters + "_r"
             + (m + 1) + "_x" + this.config.trialNumber + ".png");
         try {
           ImageIO.write(img, "png", imageFile);

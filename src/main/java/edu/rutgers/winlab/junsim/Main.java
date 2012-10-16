@@ -140,7 +140,7 @@ public class Main {
 
       // Don't schedule too many at once, eats-up memory!
       if (tasks.size() >= Main.maxConcurrentTasks) {
-        System.out.printf("Executing %d tasks.\n", tasks.size());
+        System.out.printf("Executing %d tasks. %d remain.\n", tasks.size(),Main.config.numTrials-trialNumber-1);
         try {
           // The following call will block utnil ALL tasks are complete
           workers.invokeAll(tasks);

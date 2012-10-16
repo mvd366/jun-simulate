@@ -10,7 +10,7 @@
   <universeWidth>1920</universeWidth>
   <randomSeed>2</randomSeed>
   <showDisplay>false</showDisplay>
-  <numTrials>100</numTrials>
+  <numTrials>25</numTrials>
   <outputFileName>test.csv</outputFileName>
   <numThreads>2</numThreads>
   <generateImages>true</generateImages>
