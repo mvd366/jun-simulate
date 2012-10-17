@@ -147,21 +147,49 @@ parameter in more detail.</p>
 <h2>Screenshots</h2>
 <p> The screenshots below are available when the configuration parameter
 <code>generateImages</code> is set to <code>true</code>. The simulator will
-generate 1920x1080 px PNG images any time it finds a coverage below 99.9% when
-a large number of receivers are required (more than half the number of
-transmitters).</p>
+generate 1920x1080 px PNG images for each step of the algorithm.</p>
 
-<p>The meaning of the different components isn't exactly clear unless you
-understand the algorithm, but some of them look cool (at least for math), so I
-thought I would include them as a little treat.</p>
+<p>Below is a set of images taken from an example run with 5 transmitters
+randomly placed around the area.</p>
 
-<table>
+<table >
   <tr>
-    <td><a href="images/screenshot1.png"><img src="images/screenshot1-tn.png" height="225" width="400" alt="Screenshot 1 (15 Transmitters, 8 Receivers)"></img></a></td>
-    <td><a href="images/screenshot2.png"><img src="images/screenshot2-tn.png" height="225" width="400" alt="Screenshot 2 (15 Transmitters, 8 Receivers)"></img></a></td>
-    <td><a href="images/screenshot3.png"><img src="images/screenshot3-tn.png" height="225" width="400" alt="Screenshot 3 (15 Transmitters, 8 Receivers)"></img></a></td>
+    <td><a href="images/0000.png"><img src="images/0000-tn.png"
+    height="225" width="400" ></img></a><p>Arrangement of the
+    transmitters within the coordinate plane.</p></td>
+    <td><a href="images/0010.png"><img src="images/0010-tn.png" height="225"
+    width="400" ></img></a><p>Calculating the capture disks of the
+    transmitter pairs. </p></td>
+    <td><a href="images/0020.png"><img src="images/0020-tn.png" height="225"
+    width="400" ></img></a><p>Generating potential receiver locations
+    from the capture disks.</p></td>
   </tr>
 </table>
+<table>
+  <tr>
+    <td><a href="images/1001.png"><img src="images/1001-tn.png" height="225"
+    width="400" ></img></a><p>The first receiver is placed.</p></td>
+    <td><a href="images/1002.png"><img src="images/1002-tn.png" height="225"
+    width="400" ></img></a><p>The second receiver is placed.</p></td>
+    <td><a href="images/1003.png"><img src="images/1003-tn.png" height="225"
+    width="400" ></img></a><p>The third receiver is placed.</p></td>
+    <td><a href="images/1004.png"><img src="images/1004-tn.png" height="225"
+    width="400" ></img></a><p>The fourth and final receiver is placed.</p></td>
+  </tr>
+</table>
+<p>Some slightly nicer-looking screenshots using different numbers of
+transmitters and receivers.</p>
+<table>
+  <tr>
+    <td><a href="images/screenshot1.png"><img src="images/screenshot1-tn.png" height="225"
+    width="400" ></img></a><p>20 transmitters, 12 receivers.</p></td>
+    <td><a href="images/screenshot2.png"><img src="images/screenshot2-tn.png" height="225"
+    width="400" ></img></a><p>15 transmitters, 8 receivers.</p></td>
+    <td><a href="images/screenshot3.png"><img src="images/screenshot3-tn.png" height="225"
+    width="400" ></img></a><p>10 transmitters, 6 receivers.</p></td>
+  </tr>
+</table>
+
 <h3>Screenshot Legend</h3>
 <ul>
   <li>White "T" - Barely visible unless you look, this is the location of the
