@@ -1,6 +1,5 @@
 /*
- * Owl Platform
- * Copyright (C) 2012 Robert Moore and the Owl Platform
+ * Copyright (C) 2012 Robert Moore and Rutgers University
  * 
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
