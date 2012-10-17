@@ -128,43 +128,42 @@ public class ExperimentTask implements Callable<Boolean> {
         && !disks.isEmpty()) {
       System.out.println("[" + this.config.trialNumber
           + "] Calculating position for receiver " + (m + 1) + ".");
-      HashMap<Point2D, Collection<CaptureDisk>> bipartiteGraph = new HashMap<Point2D, Collection<CaptureDisk>>();
+      // HashMap<Point2D, Collection<CaptureDisk>> bipartiteGraph = new
+      // HashMap<Point2D, Collection<CaptureDisk>>();
 
       Point2D maxPoint = null;
+      Collection<CaptureDisk> maxPointDisks = null;
       int maxDisks = 0;
 
       // For each solution point, map the set of capture disks that contain
       // it
-      int diskNum = 0;
-      for (CaptureDisk d : disks) {
-        // System.out.println("[" + this.config.trialNumber
-        // + "] Disk " + diskNum + "/" + disks.size() + ".");
-        ++diskNum;
-        for (Point2D p : solutionPoints) {
+
+      // System.out.println("[" + this.config.trialNumber
+      // + "] Disk " + diskNum + "/" + disks.size() + ".");
+
+      for (Point2D p : solutionPoints) {
+        Collection<CaptureDisk> pDisk = new HashSet<CaptureDisk>();
+        for (CaptureDisk d : disks) {
           if (d.disk.contains(p)) {
-            Collection<CaptureDisk> containingPoints = bipartiteGraph.get(p);
-            if (containingPoints == null) {
-              containingPoints = new HashSet<CaptureDisk>();
-              bipartiteGraph.put(p, containingPoints);
-            }
-            containingPoints.add(d);
-            if (containingPoints.size() > maxDisks) {
-              maxDisks = containingPoints.size();
-              maxPoint = p;
-            }
+            pDisk.add(d);
+
+          }
+          if (pDisk.size() > maxDisks) {
+            maxDisks = pDisk.size();
+            maxPoint = p;
+            maxPointDisks = pDisk;
           }
         }
       }
 
       // Remove the highest point and its solution disks
       if (maxPoint != null) {
-        Collection<CaptureDisk> removedDisks = bipartiteGraph.remove(maxPoint);
         Receiver r = new Receiver();
         r.setLocation(maxPoint);
-        r.coveringDisks = removedDisks;
+        r.coveringDisks = maxPointDisks;
         receivers.add(r);
         solutionPoints.remove(maxPoint);
-        disks.removeAll(removedDisks);
+        disks.removeAll(maxPointDisks);
       }
       // No solutions found?
       else {
@@ -181,9 +180,9 @@ public class ExperimentTask implements Callable<Boolean> {
         display.setCaptureDisks(disks);
         display.setReceiverPoints(receivers);
 
-        String saveName = String.format(
-            "s%d_t%d_x%d" + File.separator + "1%03d", Main.config.randomSeed,
-            +this.config.numTransmitters, +this.config.trialNumber, (m + 1));
+        String saveName = String.format("s%d_t%d_x%d" + File.separator
+            + "1%03d", Main.config.randomSeed, +this.config.numTransmitters,
+            +this.config.trialNumber, (m + 1));
         saveImage(display, saveName);
         display.clear();
 
@@ -191,11 +190,6 @@ public class ExperimentTask implements Callable<Boolean> {
 
       this.stats[m].addCoverage(captureRatio);
       ++m;
-
-      for (Collection<CaptureDisk> vals : bipartiteGraph.values()) {
-        vals.clear();
-      }
-      bipartiteGraph.clear();
 
     } // End for each receiver
 
