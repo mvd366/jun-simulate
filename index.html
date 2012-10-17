@@ -80,6 +80,70 @@ configuration file is "myconfig.xml", then run the application like this:
 <pre><code>java -jar jun-simulate-1.0.0-SNAPSHOT-jar-with-dependencies.jar myconfig.xml</code></pre>
 you should see output on the console almost immediately.</p>
 
+<h3>The Configuration File</h3>
+<p>The configuration file is an XML-based set of runtime parameters. An
+example is provided in the source, and this section is a description of each
+parameter in more detail.</p>
+
+<dl>
+  <dt>beta: float</dt>
+  <dd>The relative distance between a receiver and pair of
+  transmitters.  If the distance between the receiver and each transmitter
+  differs by at least this much, then the receiver should be able to capture
+  the packet with the stronger signal power.</dd>
+  <dt>numTransmitters: integer</dt>
+  <dd>The number of transmitter locations to simulate.  <strong>Be careful with
+  this value!</strong> Even a small number of transmitters (30) can create a
+  very large number of solution points (&gt;400,000).  Be sure your computer
+  has sufficient memory and processor resources.  For 25 transmitters, you
+  should allocate at least 2GB of RAM to the Java heap.</dd>
+  <dt>numReceivers: integer</dt>
+  <dd>The maximum number of receivers to place.  The simulator will place 1
+  receiver at a time until either no more solution points or capture disks
+  remain, or until this limit is reached.</dd>
+  <dt>radioPower: float</dt>
+  <dd>The transmit power of the transmitters' radios in dBm.Currently unused,
+  but in future versions will probably enable the auto-calculation of
+  <em>beta</em> if not explicitly provided. </dd>
+  <dt>radioAlpha: float</dt>
+  <dd>The attenuation constant of the local environment.  Currently unused,
+  but in future versions will probably enable the auto-calculation of
+  <em>beta</em> if not explicitly provided.</dd>
+  <dt>squareWidth: float</dt>
+  <dd>The width of the transmitter placement rectangle.</dd>
+  <dt>squareHeight: float</dt>
+  <dd>The height of the transmitter placement rectangle.</dd>
+  <dt>universeWidth: float</dt>
+  <dd>The width of the "universe" in which receivers may be placed.  Should be
+  greater than <em>squareWidth</em>.</dd>
+  <dt>universeHeight: float</dt>
+  <dd>The height of the "universe" in which receivers may be placed.  Should
+  be greater than <em>squareHeight</em>.</dd>
+  <dt>randomSeed: int</dt>
+  <dd>A seed for the random number generator.  Allows repeatable experiments.
+  The random number generator is used for transmitter coordinate
+  generation.</dd>
+  <dt>showDisplay: boolean</dt>
+  <dd>Determines whether the simulator should run in a very simple
+  interactive/debug mode (<em>true</em>) or just generate output
+  (<em>false</em>).</dd>
+  <dt>numTrials: integer</dt>
+  <dd>The number of simulations to run before computing aggregate
+  statistics.</dd>
+  <dt>outputFileName: string</dt>
+  <dd>The filename of the statistics output file.  The file is written in
+  comma-separated values (CSV) format.</dd>
+  <dt>numThreads: integer</dt>
+  <dd>The number of threads to spawn and also the number of concurrent
+  simulations to run.  Given that simulations can consume a lot of RAM, be
+  careful how many you run simultaneously.</dd>
+  <dt>generateImages: boolean</dt>
+  <dd>If <em>true</em>, then the simulator will produce PNG files in its
+  working directory each time it notices an output with a large number of
+  receivers (&gt 50% of transmitters) that don't "cover" all capture
+  disks.</dd>
+</dl>
+
 <h2>Screenshots</h2>
 <p> The screenshots below are available when the configuration parameter
 <code>generateImages</code> is set to <code>true</code>. The simulator will
