@@ -41,11 +41,16 @@ public class ExperimentTask implements Callable<Boolean> {
 
   final TaskConfig config;
   final ExperimentStats stats[];
+  String saveDirectory = null;
 
   public ExperimentTask(final TaskConfig config, final ExperimentStats[] stats) {
     super();
     this.config = config;
     this.stats = stats;
+    this.saveDirectory = String.format("s%d_t%d_x%d"
+        + (Main.config.stripSolutionPoints ? "_S" : ""),
+        Main.config.randomSeed, this.config.numTransmitters,
+        this.config.trialNumber);
   }
 
   @Override
@@ -55,9 +60,7 @@ public class ExperimentTask implements Callable<Boolean> {
     if (Main.config.generateImages) {
 
       display.setTransmitters(this.config.transmitters);
-      saveImage(display, String.format("s%d_t%d_x%d" + File.separator + "0000",
-          Main.config.randomSeed, +this.config.numTransmitters,
-          +this.config.trialNumber));
+      saveImage(display, this.saveDirectory + File.separator + "0000");
       display.clear();
     }
 
@@ -76,46 +79,19 @@ public class ExperimentTask implements Callable<Boolean> {
     if (Main.config.generateImages) {
       display.setTransmitters(this.config.transmitters);
       display.setCaptureDisks(disks);
-      saveImage(display, String.format("s%d_t%d_x%d" + File.separator + "0010",
-          Main.config.randomSeed, +this.config.numTransmitters,
-          +this.config.trialNumber));
+      saveImage(display, this.saveDirectory + File.separator + "0010");
       display.clear();
     }
 
-    // Add center points of all capture disks as solutions
-    Collection<Point2D> solutionPoints = new HashSet<Point2D>();
-    for (CaptureDisk disk : disks) {
-      if (disk.disk.getCenterX() < 0
-          || disk.disk.getCenterX() >= Main.config.universeWidth
-          || disk.disk.getCenterY() < 0
-          || disk.disk.getCenterY() > Main.config.universeHeight) {
-        continue;
-      }
-      solutionPoints.add(new Point2D.Float((float) disk.disk.getCenterX(),
-          (float) disk.disk.getCenterY()));
-    }
-
-    System.out.println("[" + this.config.trialNumber
-        + "] Generating intersection solutions.");
-    // Add intersection of all capture disks as solutions
-    for (CaptureDisk d1 : disks) {
-      for (CaptureDisk d2 : disks) {
-        Collection<Point2D> intersections = Main.generateIntersections(d1, d2);
-        if (intersections != null && !intersections.isEmpty()) {
-          solutionPoints.addAll(intersections);
-        }
-      }
-    }
-
+    Collection<Point2D> solutionPoints = ExperimentTask
+        .generateSolutionPoints(disks);
     System.out.println("[" + this.config.trialNumber + "] Generated "
         + solutionPoints.size() + " solution points.");
     if (Main.config.generateImages) {
       display.setTransmitters(this.config.transmitters);
       display.setSolutionPoints(solutionPoints);
       display.setCaptureDisks(disks);
-      saveImage(display, String.format("s%d_t%d_x%d" + File.separator + "0020",
-          Main.config.randomSeed, +this.config.numTransmitters,
-          +this.config.trialNumber));
+      saveImage(display, this.saveDirectory + File.separator + "0020");
       display.clear();
     }
 
@@ -180,9 +156,8 @@ public class ExperimentTask implements Callable<Boolean> {
         display.setCaptureDisks(disks);
         display.setReceiverPoints(receivers);
 
-        String saveName = String.format("s%d_t%d_x%d" + File.separator
-            + "1%03d", Main.config.randomSeed, +this.config.numTransmitters,
-            +this.config.trialNumber, (m + 1));
+        String saveName = String.format(this.saveDirectory + File.separator
+            + "1%03d", (m + 1));
         saveImage(display, saveName);
         display.clear();
 
@@ -190,6 +165,13 @@ public class ExperimentTask implements Callable<Boolean> {
 
       this.stats[m].addCoverage(captureRatio);
       ++m;
+      // Recompute solution points based on remaining disks
+      if (Main.config.stripSolutionPoints) {
+        solutionPoints.clear();
+        solutionPoints = ExperimentTask.generateSolutionPoints(disks);
+        System.out.println("[" + this.config.trialNumber + "] Regenerated "
+            + solutionPoints.size() + " solution points.");
+      }
 
     } // End for each receiver
 
@@ -199,6 +181,34 @@ public class ExperimentTask implements Callable<Boolean> {
     this.config.transmitters.clear();
     Runtime.getRuntime().gc();
     return Boolean.TRUE;
+  }
+
+  private static Collection<Point2D> generateSolutionPoints(
+      Collection<CaptureDisk> disks) {
+    // Add center points of all capture disks as solutions
+    Collection<Point2D> solutionPoints = new HashSet<Point2D>();
+    for (CaptureDisk disk : disks) {
+      if (disk.disk.getCenterX() < 0
+          || disk.disk.getCenterX() >= Main.config.universeWidth
+          || disk.disk.getCenterY() < 0
+          || disk.disk.getCenterY() > Main.config.universeHeight) {
+        continue;
+      }
+      solutionPoints.add(new Point2D.Float((float) disk.disk.getCenterX(),
+          (float) disk.disk.getCenterY()));
+    }
+
+    // Add intersection of all capture disks as solutions
+    for (CaptureDisk d1 : disks) {
+      for (CaptureDisk d2 : disks) {
+        Collection<Point2D> intersections = Main.generateIntersections(d1, d2);
+        if (intersections != null && !intersections.isEmpty()) {
+          solutionPoints.addAll(intersections);
+        }
+      }
+    }
+
+    return solutionPoints;
   }
 
   private void saveImage(DisplayPanel display, String fileName) {

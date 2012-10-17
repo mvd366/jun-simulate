@@ -85,6 +85,12 @@ public class Config {
    * numbers of transmitters!
    */
   int numThreads = 0;
+  
+  /**
+   * Whether or not to remove solution points related to capture disks that
+   * are removed.
+   */
+  boolean stripSolutionPoints = true;
 
   public int getNumTransmitters() {
     return numTransmitters;
