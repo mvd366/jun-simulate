@@ -38,6 +38,30 @@ possibilities of receiver placements, this project simulates placing receivers
 at various locations within the sensor network in order to minimize lost
 packets due to collisions.</p>
 
+<h2>The Algorithm</h2>
+<p>Given a set of transmitter locations, where is the best place to put your
+receivers if you wish to maximize the number of packets captured during a
+collision.  If you think that colliding transmissions always cause packet
+loss, read-up on <a href="http://en.wikipedia.org/wiki/Capture_effect">the
+capture effect</a>.</p>
+
+<p>So given your set of transmitters, you then go about calculating the set of
+pairwise capture disks for each pair of transmitters.  That is, for each
+pair of transmitters in a 2-dimensional plane (t<sub>1</sub>, t<sub>2</sub>), 
+the capture disk is the area where a receiver would be able to decode
+t<sub>1</sub>'s packet during a collision with t<sub>2</sub>'s packet. The
+math to calculate this is beyond the scope of this page, but you can <a
+href="https://github.com/romoore/jun-simulate/blob/master/src/main/java/edu/rutgers/winlab/junsim/Main.java">check out
+the code</a> for more details.</p>
+
+<p>Once you have your capture disks, you then collect a set of possible
+receiver locations as the centers of the disks and the intersections of all
+disks.  Then, for each possible solution point, determine how many capture
+disks contain that point.  Sort the solution points in non-increasing order of
+capture disks, and select the maximum.  Remove this point and its associated
+disks and repeat until you've found enough receivers or run out of disks or
+solution points.</p>
+
 <h2>Compiling</h2>
 <p>The code is built most easily with <a href="http://maven.apache.org">Apache
 Maven</a>.  In the main directory, just type:
