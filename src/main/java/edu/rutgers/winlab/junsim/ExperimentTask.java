@@ -22,11 +22,14 @@ import java.awt.Graphics;
 import java.awt.geom.Point2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.IOException;
 import java.util.Collection;
+import java.util.Formatter;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.concurrent.Callable;
+import java.util.logging.SimpleFormatter;
 
 import javax.imageio.ImageIO;
 import javax.swing.JFrame;
@@ -48,6 +51,16 @@ public class ExperimentTask implements Callable<Boolean> {
 
   @Override
   public Boolean call() {
+    DisplayPanel display = new DisplayPanel();
+
+    if (Main.config.generateImages) {
+
+      display.setTransmitters(this.config.transmitters);
+      saveImage(display, String.format("s%d_t%d_x%d" + File.separator + "0000",
+          Main.config.randomSeed, +this.config.numTransmitters,
+          +this.config.trialNumber));
+      display.clear();
+    }
 
     Collection<CaptureDisk> disks = new HashSet<CaptureDisk>();
     // Compute all possible capture disks
@@ -59,13 +72,26 @@ public class ExperimentTask implements Callable<Boolean> {
         }
       }
     }
-    System.out.println("[" + this.config.trialNumber
-        + "] Generated " + disks.size() + " disks.");
-    
-    
+    System.out.println("[" + this.config.trialNumber + "] Generated "
+        + disks.size() + " disks.");
+    if (Main.config.generateImages) {
+      display.setTransmitters(this.config.transmitters);
+      display.setCaptureDisks(disks);
+      saveImage(display, String.format("s%d_t%d_x%d" + File.separator + "0010",
+          Main.config.randomSeed, +this.config.numTransmitters,
+          +this.config.trialNumber));
+      display.clear();
+    }
+
     // Add center points of all capture disks as solutions
     Collection<Point2D> solutionPoints = new HashSet<Point2D>();
     for (CaptureDisk disk : disks) {
+      if (disk.disk.getCenterX() < 0
+          || disk.disk.getCenterX() >= Main.config.universeWidth
+          || disk.disk.getCenterY() < 0
+          || disk.disk.getCenterY() > Main.config.universeHeight) {
+        continue;
+      }
       solutionPoints.add(new Point2D.Float((float) disk.disk.getCenterX(),
           (float) disk.disk.getCenterY()));
     }
@@ -81,11 +107,18 @@ public class ExperimentTask implements Callable<Boolean> {
         }
       }
     }
-    
-    System.out.println("[" + this.config.trialNumber
-        + "] Generated " + solutionPoints.size() + " solution points.");
 
-    DisplayPanel display = new DisplayPanel();
+    System.out.println("[" + this.config.trialNumber + "] Generated "
+        + solutionPoints.size() + " solution points.");
+    if (Main.config.generateImages) {
+      display.setTransmitters(this.config.transmitters);
+      display.setSolutionPoints(solutionPoints);
+      display.setCaptureDisks(disks);
+      saveImage(display, String.format("s%d_t%d_x%d" + File.separator + "0020",
+          Main.config.randomSeed, +this.config.numTransmitters,
+          +this.config.trialNumber));
+      display.clear();
+    }
 
     int totalCaptureDisks = disks.size();
     int totalSolutionPoints = solutionPoints.size();
@@ -105,8 +138,8 @@ public class ExperimentTask implements Callable<Boolean> {
       // it
       int diskNum = 0;
       for (CaptureDisk d : disks) {
-//        System.out.println("[" + this.config.trialNumber
-//            + "] Disk " + diskNum + "/" + disks.size() + ".");
+        // System.out.println("[" + this.config.trialNumber
+        // + "] Disk " + diskNum + "/" + disks.size() + ".");
         ++diskNum;
         for (Point2D p : solutionPoints) {
           if (d.disk.contains(p)) {
@@ -143,28 +176,17 @@ public class ExperimentTask implements Callable<Boolean> {
       float captureRatio = (capturedDisks / totalCaptureDisks);
       float receiverRatio = (1f * m + 1) / this.config.numReceivers;
       // Debugging stuff
-      if (Main.config.generateImages && captureRatio < .999f
-          && receiverRatio >= 0.5) {
-        BufferedImage img = new BufferedImage(1920, 1080,
-            BufferedImage.TYPE_INT_RGB);
-        Graphics g = img.createGraphics();
-
+      if (Main.config.generateImages) {
         display.setTransmitters(this.config.transmitters);
         display.setSolutionPoints(solutionPoints);
         display.setCaptureDisks(disks);
         display.setReceiverPoints(receivers);
 
-        display.render(g, img.getWidth(), img.getHeight());
-
-        File imageFile = new File("s"+Main.config.randomSeed + "_t" + this.config.numTransmitters + "_r"
-            + (m + 1) + "_x" + this.config.trialNumber + ".png");
-        try {
-          ImageIO.write(img, "png", imageFile);
-          System.out.println("Wrote " + imageFile.getName());
-        } catch (Exception e) {
-          e.printStackTrace();
-        }
-        g.dispose();
+        String saveName = String.format(
+            "s%d_t%d_x%d" + File.separator + "1%03d", Main.config.randomSeed,
+            +this.config.numTransmitters, +this.config.trialNumber, (m + 1));
+        saveImage(display, saveName);
+        display.clear();
 
       }
 
@@ -184,6 +206,32 @@ public class ExperimentTask implements Callable<Boolean> {
     this.config.transmitters.clear();
     Runtime.getRuntime().gc();
     return Boolean.TRUE;
+  }
+
+  private void saveImage(DisplayPanel display, String fileName) {
+    BufferedImage img = new BufferedImage(1920, 1080,
+        BufferedImage.TYPE_INT_RGB);
+    Graphics g = img.createGraphics();
+
+    display.render(g, img.getWidth(), img.getHeight());
+
+    File imageFile = new File(fileName + ".png");
+    imageFile.mkdirs();
+    if (!imageFile.exists()) {
+      try {
+        imageFile.createNewFile();
+      } catch (IOException e) {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+      }
+    }
+    try {
+      ImageIO.write(img, "png", imageFile);
+      System.out.println("Saved " + imageFile.getName());
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+    g.dispose();
   }
 
 }
