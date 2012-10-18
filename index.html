@@ -39,11 +39,12 @@ at various locations within the sensor network in order to minimize lost
 packets due to collisions.</p>
 
 <h2>The Algorithm</h2>
-<p>Given a set of transmitter locations, where is the best place to put your
+<p>ALOHA got it wrong! If you think that colliding transmissions always
+cause packet loss, read-up on <a
+href="http://en.wikipedia.org/wiki/Capture_effect">the capture effect</a>. So,
+given a set of transmitter locations, where is the best place to put your
 receivers if you wish to maximize the number of packets captured during a
-collision.  If you think that colliding transmissions always cause packet
-loss, read-up on <a href="http://en.wikipedia.org/wiki/Capture_effect">the
-capture effect</a>.</p>
+collision?</p>
 
 <p>So given your set of transmitters, you then go about calculating the set of
 pairwise capture disks for each pair of transmitters.  That is, for each
