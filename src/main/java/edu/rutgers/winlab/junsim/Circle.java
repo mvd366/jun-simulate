@@ -30,19 +30,19 @@ public class Circle implements Drawable {
   public Point2D.Float center = new Point2D.Float();
 
   @Override
-  public void draw(Graphics2D g) {
+  public void draw(Graphics2D g, float scaleX, float scaleY) {
     AffineTransform origTransform = g.getTransform();
 
-    g.drawOval((int) (this.center.getX() - this.radius),
-        (int) (this.center.getY() - radius), (int) (this.radius * 2),
-        (int) (this.radius * 2));
+    g.drawOval((int) ((this.center.getX() - this.radius)*scaleX),
+        (int) ((this.center.getY() - radius)*scaleY), (int) (this.radius * 2 * scaleX),
+        (int) (this.radius * 2 * scaleY));
 
     g.setTransform(origTransform);
   }
 
   public boolean contains(Point2D p) {
     float dist = (float) Math.sqrt(Math.pow(p.getX() - this.center.getX(), 2)
-        - Math.pow(p.getY() - this.center.getY(), 2));
+        + Math.pow(p.getY() - this.center.getY(), 2));
     return this.radius >= dist;
   }
   

@@ -15,5 +15,6 @@
   <numThreads>4</numThreads>
   <generateImages>true</generateImages>
   <stripSolutionPoints>false</stripSolutionPoints>
+  <waveLengthInMeters>.333</waveLengthInMeters>
 </edu.rutgers.winlab.junsim.Config>
 

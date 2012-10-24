@@ -18,17 +18,14 @@
 package edu.rutgers.winlab.junsim;
 
 import java.awt.Dimension;
-import java.awt.geom.Ellipse2D;
 import java.awt.geom.Point2D;
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -37,7 +34,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import javax.swing.JFrame;
@@ -196,6 +192,16 @@ public class Main {
     fileWriter.close();
   }
 
+  public static float getMaxDistance(float power, float alpha){
+    // -100 = power*-10*alpha*Math.log10(distance/Main.config.waveLengthInMeters);
+    // -100/-10 = alpha*Math.log10(distance/Main.config.waveLengthInMeters);
+    // 10*power/alpha = Math.log10(distance/Main.config.waveLengthInMeters);
+    // (10*power/alpha) + Math.log10(Main.config.waveLengthInMeters) = Math.log10(distance);
+    // Math.pow(10,(10*power/alpha) + Math.log10(Main.config.waveLengthInMeters)) = distance
+    
+    return 0f;
+  }
+  
   public static void doDisplayedResult() throws IOException {
 
     DisplayPanel display = new DisplayPanel();
@@ -368,12 +374,19 @@ public class Main {
     captureDisk.t2 = t2;
     double betaSquared = Math.pow(Main.config.beta, 2);
     double denominator = 1 - betaSquared;
-
+    
     double centerX = (t1.getX() - (betaSquared * t2.getX())) / denominator;
     double centerY = (t1.getY() - (betaSquared * t2.getY())) / denominator;
 
     double euclideanDistance = Math.sqrt(Math.pow(t1.getX() - t2.getX(), 2)
         + Math.pow(t1.getY() - t2.getY(), 2));
+    
+    /**
+     * TODO: Improve the cutting based on transmit distance. This is overly simplistic.
+     */
+    if(euclideanDistance > (2*Main.config.maxRangeMeters)){
+      return null;
+    }
 
     double radius = (Main.config.beta * euclideanDistance) / denominator;
 

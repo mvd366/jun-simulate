@@ -54,6 +54,9 @@ public class Config {
 
   float universeWidth = 1920f;
   float universeHeight = 1080f;
+  
+  int renderWidth = 1920;
+  int renderHeight = 1080;
 
   /**
    * Seed value for randomizing.
@@ -84,13 +87,18 @@ public class Config {
    * Number of worker threads for concurrent execution. Careful with large
    * numbers of transmitters!
    */
-  int numThreads = 0;
+  int numThreads = 1;
   
   /**
    * Whether or not to remove solution points related to capture disks that
    * are removed.
    */
-  boolean stripSolutionPoints = true;
+  boolean stripSolutionPoints = false;
+  
+  /**
+   * Maximum range (in meters) that a transmitter may be heard by a receiver.
+   */
+  float maxRangeMeters = 100f;
 
   public int getNumTransmitters() {
     return numTransmitters;

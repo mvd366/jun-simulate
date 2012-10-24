@@ -29,9 +29,9 @@ public class Transmitter extends Point2D.Float implements Drawable{
 
   
   @Override
-  public void draw(Graphics2D g) {
+  public void draw(Graphics2D g, float scaleX, float scaleY) {
     AffineTransform origTransform = g.getTransform();
-    g.translate((int)this.getX(),(int)this.getY());
+    g.translate((int)(this.getX()*scaleX),(int)(this.getY()*scaleY));
     g.drawString("T", 0,0);
     g.setTransform(origTransform);
     

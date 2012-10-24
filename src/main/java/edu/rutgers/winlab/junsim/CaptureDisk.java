@@ -54,10 +54,10 @@ public class CaptureDisk implements Drawable {
     return this.disk.equals(c.disk);
   }
 
-  public void draw(Graphics2D g) {
+  public void draw(Graphics2D g, float scaleX, float scaleY) {
     AffineTransform origTransform = g.getTransform();
     // g.translate(this.disk.getMinX(), this.disk.getMinY());
-    this.disk.draw(g);
+    this.disk.draw(g,scaleX, scaleY);
     g.setTransform(origTransform);
   }
 

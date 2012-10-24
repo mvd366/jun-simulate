@@ -54,40 +54,57 @@ public class DisplayPanel extends JPanel {
 
   public void render(Graphics g, int width, int height) {
 
-    float scaleX = width / Main.config.universeWidth;
+    // Figure-out the scaling based on aspect-ratios
 
-    float scaleY = height / Main.config.universeHeight;
+    float displayRatio = 1f * width / height;
+    float scale = 1;
+    // float scaleY = 1;
+    // Widescreen
 
     Graphics2D g2 = (Graphics2D) g;
 
     AffineTransform origTransform = g2.getTransform();
+    
+    
 
-    g2.scale(scaleX, scaleY);
+    if (displayRatio > 1.001f) {
+      scale = height / Main.config.universeHeight;
+      int marginX = width - (int) (Main.config.universeWidth * scale);
+      g2.translate(marginX / 2, 0);
+    }
+    // Tall-screen
+    else if (displayRatio < 0.999f) {
+      scale = width / Main.config.universeWidth;
+      int marginY = height - (int) (Main.config.universeHeight * scale);
+      g2.translate(0, marginY / 2);
+    }
+
+    // g2.scale(scaleX, scaleY);
 
     g2.setColor(Color.BLACK);
-    g2.fillRect(0, 0, (int) Main.config.universeWidth+ 1,
+    g2.fillRect(0, 0, (int) Main.config.universeWidth + 1,
         (int) Main.config.universeHeight + 1);
     g2.setColor(Color.WHITE);
 
     for (Drawable d : devices) {
-      d.draw(g2);
+      d.draw(g2, scale, scale);
     }
 
     g2.setColor(Color.RED);
 
     for (CaptureDisk d : disks) {
-      d.draw(g2);
+      d.draw(g2, scale, scale);
     }
 
     g2.setColor(Color.GREEN);
 
     for (Point2D p : points) {
-      g2.fillOval((int) p.getX(), (int) p.getY(), 2, 2);
+      g2.fillOval((int) (p.getX() * scale), (int) (p.getY() * scale), 2, 2);
     }
 
     g2.setColor(Color.BLUE);
     for (Receiver p : receiverPoints) {
-      p.draw(g2);
+      p.draw(g2, scale, scale);
     }
 
     g2.setColor(Color.WHITE);
@@ -95,7 +112,7 @@ public class DisplayPanel extends JPanel {
     g2.setTransform(origTransform);
     g2.drawString(
         "T" + this.devices.size() + " R" + this.receiverPoints.size(), 0,
-        this.getHeight());
+        height);
   }
 
   public void setTransmitters(Collection<Transmitter> devices) {

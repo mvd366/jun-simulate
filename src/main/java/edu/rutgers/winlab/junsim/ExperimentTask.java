@@ -84,7 +84,7 @@ public class ExperimentTask implements Callable<Boolean> {
     }
 
     Collection<Point2D> solutionPoints = ExperimentTask
-        .generateSolutionPoints(disks);
+        .generateSolutionPoints(disks,this.config.transmitters);
     System.out.println("[" + this.config.trialNumber + "] Generated "
         + solutionPoints.size() + " solution points.");
     if (Main.config.generateImages) {
@@ -120,15 +120,15 @@ public class ExperimentTask implements Callable<Boolean> {
       for (Point2D p : solutionPoints) {
         Collection<CaptureDisk> pDisk = new HashSet<CaptureDisk>();
         for (CaptureDisk d : disks) {
-          if (d.disk.contains(p)) {
+          if (checkDisk(d, p)) {
             pDisk.add(d);
 
           }
-          if (pDisk.size() > maxDisks) {
-            maxDisks = pDisk.size();
-            maxPoint = p;
-            maxPointDisks = pDisk;
-          }
+        }
+        if (pDisk.size() > maxDisks) {
+          maxDisks = pDisk.size();
+          maxPoint = p;
+          maxPointDisks = pDisk;
         }
       }
 
@@ -168,7 +168,7 @@ public class ExperimentTask implements Callable<Boolean> {
       // Recompute solution points based on remaining disks
       if (Main.config.stripSolutionPoints) {
         solutionPoints.clear();
-        solutionPoints = ExperimentTask.generateSolutionPoints(disks);
+        solutionPoints = ExperimentTask.generateSolutionPoints(disks,this.config.transmitters);
         System.out.println("[" + this.config.trialNumber + "] Regenerated "
             + solutionPoints.size() + " solution points.");
       }
@@ -183,8 +183,21 @@ public class ExperimentTask implements Callable<Boolean> {
     return Boolean.TRUE;
   }
 
+  private boolean checkDisk(CaptureDisk d, Point2D p) {
+    double dist1 = Math.sqrt(Math.pow(p.getX() - d.t1.getX(), 2)
+        + Math.pow(p.getY() - d.t1.getY(), 2));
+    double dist2 = Math.sqrt(Math.pow(p.getX() - d.t2.getX(), 2)
+        + Math.pow(p.getY() - d.t2.getY(), 2));
+    if (dist1 > Main.config.maxRangeMeters
+        && dist2 > Main.config.maxRangeMeters) {
+      return false;
+    }
+    return d.disk.contains(p);
+
+  }
+
   private static Collection<Point2D> generateSolutionPoints(
-      Collection<CaptureDisk> disks) {
+      Collection<CaptureDisk> disks, Collection<Transmitter> transmitters) {
     // Add center points of all capture disks as solutions
     Collection<Point2D> solutionPoints = new HashSet<Point2D>();
     for (CaptureDisk disk : disks) {
@@ -194,8 +207,11 @@ public class ExperimentTask implements Callable<Boolean> {
           || disk.disk.getCenterY() > Main.config.universeHeight) {
         continue;
       }
-      solutionPoints.add(new Point2D.Float((float) disk.disk.getCenterX(),
-          (float) disk.disk.getCenterY()));
+      Point2D.Float center = new Point2D.Float((float) disk.disk.getCenterX(),
+          (float) disk.disk.getCenterY());
+      if (ExperimentTask.checkPoint(center, transmitters)) {
+        solutionPoints.add(center);
+      }
     }
 
     // Add intersection of all capture disks as solutions
@@ -203,12 +219,37 @@ public class ExperimentTask implements Callable<Boolean> {
       for (CaptureDisk d2 : disks) {
         Collection<Point2D> intersections = Main.generateIntersections(d1, d2);
         if (intersections != null && !intersections.isEmpty()) {
-          solutionPoints.addAll(intersections);
+          for (Point2D p : intersections) {
+            if (ExperimentTask.checkPoint(p, transmitters)) {
+              solutionPoints.add(p);
+            }
+          }
         }
       }
     }
 
     return solutionPoints;
+  }
+
+  /**
+   * Returns true if a point is within the transmit radius of at least one
+   * transmitter, else false.
+   * 
+   * @param p
+   *          the point to test.
+   * @return {@code true} if the point is within the transmit radius of at
+   *         leaset one transmitter.
+   */
+  private static boolean checkPoint(Point2D p,
+      Collection<Transmitter> transmitters) {
+    for (Transmitter t : transmitters) {
+      double d = Math.sqrt(Math.pow(p.getX() - t.getX(), 2)
+          + Math.pow(p.getY() - t.getY(), 2));
+      if (d < Main.config.maxRangeMeters) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private void saveImage(DisplayPanel display, String fileName) {
