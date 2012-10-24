@@ -132,7 +132,7 @@ public class Main {
       conf.transmitters = transmitters;
       conf.numReceivers = Main.config.numReceivers;
       ExperimentTask task = new ExperimentTask(conf, stats, workers);
-      task.call();
+      task.perform();
 //      tasks.add(task);
 
 //      // Don't schedule too many at once, eats-up memory!

@@ -26,9 +26,13 @@ import java.util.Collection;
 import java.util.Formatter;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.logging.SimpleFormatter;
 
 import javax.imageio.ImageIO;
@@ -38,14 +42,15 @@ import javax.swing.JFrame;
  * @author Robert Moore
  * 
  */
-public class ExperimentTask implements Callable<Boolean> {
+public class ExperimentTask {
 
   final TaskConfig config;
   final ExperimentStats stats[];
   String saveDirectory = null;
   private final ExecutorService workers;
-  
-  public ExperimentTask(final TaskConfig config, final ExperimentStats[] stats, final ExecutorService workers) {
+
+  public ExperimentTask(final TaskConfig config, final ExperimentStats[] stats,
+      final ExecutorService workers) {
     super();
     this.workers = workers;
     this.config = config;
@@ -56,8 +61,67 @@ public class ExperimentTask implements Callable<Boolean> {
         this.config.trialNumber);
   }
 
-  @Override
-  public Boolean call() {
+  private static final class SolutionCheckTask implements Callable<Receiver> {
+
+    Collection<Point2D> solutionPoints;
+    Collection<CaptureDisk> disks;
+    ExperimentTask parent;
+
+    
+    
+    public SolutionCheckTask() {
+      super();
+    }
+
+    @Override
+    public Receiver call() {
+
+      Point2D maxPoint = null;
+      Collection<CaptureDisk> maxPointDisks = null;
+      int maxDisks = 0;
+
+      // For each solution point, map the set of capture disks that contain
+      // it
+
+      // System.out.println("[" + this.config.trialNumber
+      // + "] Disk " + diskNum + "/" + disks.size() + ".");
+
+      for (Iterator<Point2D> iter = solutionPoints.iterator(); iter.hasNext();) {
+        Point2D p = iter.next();
+        Collection<CaptureDisk> pDisk = new HashSet<CaptureDisk>();
+        for (CaptureDisk d : disks) {
+          if (ExperimentTask.checkPointInDisk(p,d)) {
+            pDisk.add(d);
+          }
+        }
+        if (pDisk.size() > maxDisks) {
+          maxDisks = pDisk.size();
+          maxPoint = p;
+          maxPointDisks = pDisk;
+        }
+        // No intersections, so remove
+        else if (pDisk.size() == 0) {
+          iter.remove();
+        }
+      }
+      Receiver maxReceiver = new Receiver();
+      // Remove the highest point and its solution disks
+      if (maxPoint != null) {
+
+        maxReceiver.setLocation(maxPoint);
+        maxReceiver.coveringDisks = maxPointDisks;
+
+      }
+      // No solutions found?
+      else {
+        return null;
+      }
+
+      return maxReceiver;
+    }
+  }
+
+  public Boolean perform() {
     DisplayPanel display = new DisplayPanel();
 
     if (Main.config.generateImages) {
@@ -86,8 +150,8 @@ public class ExperimentTask implements Callable<Boolean> {
       display.clear();
     }
 
-    Collection<Point2D> solutionPoints = ExperimentTask
-        .generateSolutionPoints(disks,this.config.transmitters);
+    Collection<Point2D> solutionPoints = ExperimentTask.generateSolutionPoints(
+        disks, this.config.transmitters);
     System.out.println("[" + this.config.trialNumber + "] Generated "
         + solutionPoints.size() + " solution points.");
     if (Main.config.generateImages) {
@@ -101,7 +165,7 @@ public class ExperimentTask implements Callable<Boolean> {
     int totalCaptureDisks = disks.size();
     int totalSolutionPoints = solutionPoints.size();
     int m = 0;
-    
+
     // Keep going while there are either solution points or capture disks
     Collection<Receiver> receivers = new LinkedList<Receiver>();
     while (m < this.config.numReceivers && !solutionPoints.isEmpty()
@@ -111,58 +175,79 @@ public class ExperimentTask implements Callable<Boolean> {
       // HashMap<Point2D, Collection<CaptureDisk>> bipartiteGraph = new
       // HashMap<Point2D, Collection<CaptureDisk>>();
 
-      Point2D maxPoint = null;
-      Collection<CaptureDisk> maxPointDisks = null;
-      int maxDisks = 0;
+      int numTasks = Main.config.numThreads;
+      int numPoints = solutionPoints.size();
+      int pointsPerTask = (numPoints / numTasks)+1;
+      long numComparisons = disks.size()*(long)numPoints;
 
-      // For each solution point, map the set of capture disks that contain
-      // it
-
-      // System.out.println("[" + this.config.trialNumber
-      // + "] Disk " + diskNum + "/" + disks.size() + ".");
-
-      for (Point2D p : solutionPoints) {
-        Collection<CaptureDisk> pDisk = new HashSet<CaptureDisk>();
-        for (CaptureDisk d : disks) {
-          if (checkDisk(d, p)) {
-            pDisk.add(d);
-
-          }
-        }
-        if (pDisk.size() > maxDisks) {
-          maxDisks = pDisk.size();
-          maxPoint = p;
-          maxPointDisks = pDisk;
-        }
-        // No intersections, so remove
-        else if(pDisk.size() == 0){
-          solutionPoints.remove(p);
+      Collection<SolutionCheckTask> tasks = new LinkedList<ExperimentTask.SolutionCheckTask>();
+      Iterator<Point2D> pointIter = solutionPoints.iterator();
+      SolutionCheckTask task = new SolutionCheckTask();
+      task.solutionPoints = new LinkedList<Point2D>();
+      task.disks = disks;
+      task.parent = this;
+      tasks.add(task);
+      for(int i=0; pointIter.hasNext(); ++i){
+        task.solutionPoints.add(pointIter.next());
+        if (i == pointsPerTask) {
+          i = 0;
+          task = new SolutionCheckTask();
+          task.solutionPoints = new LinkedList<Point2D>();
+          task.disks = disks;
+          task.parent = this;
+          tasks.add(task);
         }
       }
+      int sumTasks = 0;
+      for(SolutionCheckTask t : tasks){
+        System.out.println("Task (" + t.solutionPoints.size() + ")");
+        sumTasks += t.solutionPoints.size();
+      }
+      
+      System.out.println("Divided " + sumTasks + "/" + numPoints + " points");
+      long start = System.currentTimeMillis();
+      Receiver maxReceiver = null;
+      try {
+        List<Future<Receiver>> solutions = workers.invokeAll(tasks);
 
-      // Remove the highest point and its solution disks
-      if (maxPoint != null) {
-        Receiver r = new Receiver();
-        r.setLocation(maxPoint);
-        r.coveringDisks = maxPointDisks;
-        receivers.add(r);
-        solutionPoints.remove(maxPoint);
-        disks.removeAll(maxPointDisks);
-        
-        for(Point2D p : solutionPoints){
-          if(!checkPointInRange(p, this.config.transmitters)){
-            
+        for (Future<Receiver> future : solutions) {
+          if (future.isCancelled() || !future.isDone()) {
+            System.err.println("One of the tasks was cancelled! Double-check the code!");
+            return Boolean.FALSE;
+          }
+          try {
+            Receiver r = future.get();
+            if (maxReceiver == null
+                || r.coveringDisks.size() > maxReceiver.coveringDisks.size()) {
+              maxReceiver = r;
+            }
+          } catch (ExecutionException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
           }
         }
+
+      } catch (InterruptedException e) {
+        e.printStackTrace();
       }
-      // No solutions found?
-      else {
+      long duration = System.currentTimeMillis() - start;
+      System.out.printf("Computed %,d comparisons in %,dms.",numComparisons, duration);
+
+      if (maxReceiver == null) {
         break;
       }
 
+      solutionPoints.clear();
+      for(SolutionCheckTask t: tasks){
+        solutionPoints.addAll(t.solutionPoints);
+      }
+      
+      receivers.add(maxReceiver);
+      solutionPoints.remove(maxReceiver);
+      disks.removeAll(maxReceiver.coveringDisks);
+
       float capturedDisks = totalCaptureDisks - disks.size();
       float captureRatio = (capturedDisks / totalCaptureDisks);
-      float receiverRatio = (1f * m + 1) / this.config.numReceivers;
       // Debugging stuff
       if (Main.config.generateImages) {
         display.setTransmitters(this.config.transmitters);
@@ -182,7 +267,8 @@ public class ExperimentTask implements Callable<Boolean> {
       // Recompute solution points based on remaining disks
       if (Main.config.stripSolutionPoints) {
         solutionPoints.clear();
-        solutionPoints = ExperimentTask.generateSolutionPoints(disks,this.config.transmitters);
+        solutionPoints = ExperimentTask.generateSolutionPoints(disks,
+            this.config.transmitters);
         System.out.println("[" + this.config.trialNumber + "] Regenerated "
             + solutionPoints.size() + " solution points.");
       }
@@ -197,11 +283,12 @@ public class ExperimentTask implements Callable<Boolean> {
     return Boolean.TRUE;
   }
 
-  private boolean checkDisk(CaptureDisk d, Point2D p) {
+  static boolean checkPointInDisk(Point2D p, CaptureDisk d) {
     double dist1 = Math.sqrt(Math.pow(p.getX() - d.t1.getX(), 2)
         + Math.pow(p.getY() - d.t1.getY(), 2));
     double dist2 = Math.sqrt(Math.pow(p.getX() - d.t2.getX(), 2)
         + Math.pow(p.getY() - d.t2.getY(), 2));
+    // This point is too far away from the transmitters for this disk
     if (dist1 > Main.config.maxRangeMeters
         && dist2 > Main.config.maxRangeMeters) {
       return false;
@@ -267,8 +354,8 @@ public class ExperimentTask implements Callable<Boolean> {
   }
 
   private void saveImage(DisplayPanel display, String fileName) {
-    BufferedImage img = new BufferedImage(Main.config.renderWidth, Main.config.renderHeight,
-        BufferedImage.TYPE_INT_RGB);
+    BufferedImage img = new BufferedImage(Main.config.renderWidth,
+        Main.config.renderHeight, BufferedImage.TYPE_INT_RGB);
     Graphics g = img.createGraphics();
 
     display.render(g, img.getWidth(), img.getHeight());
