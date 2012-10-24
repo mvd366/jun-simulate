@@ -112,7 +112,7 @@ public class Main {
     fileWriter
         .println("# Tx, # Rx, Min % Covered, Med. % Covered, Mean % Covered, 95% Coverage, Max % Covered");
 
-    List<ExperimentTask> tasks = new LinkedList<ExperimentTask>();
+//    List<ExperimentTask> tasks = new LinkedList<ExperimentTask>();
 
     // Iterate through some number of trials
     for (int trialNumber = 0; trialNumber < Main.config.numTrials; ++trialNumber) {
@@ -131,45 +131,46 @@ public class Main {
       conf.numTransmitters = numTransmitters;
       conf.transmitters = transmitters;
       conf.numReceivers = Main.config.numReceivers;
-      ExperimentTask task = new ExperimentTask(conf, stats);
-      tasks.add(task);
+      ExperimentTask task = new ExperimentTask(conf, stats, workers);
+      task.call();
+//      tasks.add(task);
 
-      // Don't schedule too many at once, eats-up memory!
-      if (tasks.size() >= Main.maxConcurrentTasks) {
-        System.out.printf("Executing %d tasks. %d remain.\n", tasks.size(),Main.config.numTrials-trialNumber-1);
-        try {
-          // The following call will block utnil ALL tasks are complete
-          workers.invokeAll(tasks);
-        } catch (InterruptedException e) {
-          // TODO Auto-generated catch block
-          e.printStackTrace();
-        }
-        for (ExperimentTask t : tasks) {
-          // t.config.disks = null;
-          // t.config.solutionPoints = null;
-          t.config.transmitters.clear();
-          t.config.transmitters = null;
-        }
-        tasks.clear();
-      }
+//      // Don't schedule too many at once, eats-up memory!
+//      if (tasks.size() >= Main.maxConcurrentTasks) {
+//        System.out.printf("Executing %d tasks. %d remain.\n", tasks.size(),Main.config.numTrials-trialNumber-1);
+//        try {
+//          // The following call will block utnil ALL tasks are complete
+//          workers.invokeAll(tasks);
+//        } catch (InterruptedException e) {
+//          // TODO Auto-generated catch block
+//          e.printStackTrace();
+//        }
+//        for (ExperimentTask t : tasks) {
+//          // t.config.disks = null;
+//          // t.config.solutionPoints = null;
+//          t.config.transmitters.clear();
+//          t.config.transmitters = null;
+//        }
+//        tasks.clear();
+//      }
     } // End number of trials
 
-    if (!tasks.isEmpty()) {
-      try {
-        // The following call will block utnil ALL tasks are complete
-        workers.invokeAll(tasks);
-      } catch (InterruptedException e) {
-        // TODO Auto-generated catch block
-        e.printStackTrace();
-      }
-      for (ExperimentTask t : tasks) {
-        // t.config.disks = null;
-        // t.config.solutionPoints = null;
-        t.config.transmitters.clear();
-        t.config.transmitters = null;
-      }
-      tasks.clear();
-    }
+//    if (!tasks.isEmpty()) {
+//      try {
+//        // The following call will block utnil ALL tasks are complete
+//        workers.invokeAll(tasks);
+//      } catch (InterruptedException e) {
+//        // TODO Auto-generated catch block
+//        e.printStackTrace();
+//      }
+//      for (ExperimentTask t : tasks) {
+//        // t.config.disks = null;
+//        // t.config.solutionPoints = null;
+//        t.config.transmitters.clear();
+//        t.config.transmitters = null;
+//      }
+//      tasks.clear();
+//    }
 
     workers.shutdown();
     System.out.println("Waiting up to 60 seconds for threadpool to terminate.");

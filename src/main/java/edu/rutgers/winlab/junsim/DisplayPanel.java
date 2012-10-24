@@ -99,7 +99,7 @@ public class DisplayPanel extends JPanel {
     g2.setColor(Color.GREEN);
 
     for (Point2D p : points) {
-      g2.fillOval((int) (p.getX() * scale), (int) (p.getY() * scale), 2, 2);
+      g2.fillOval((int) (p.getX() * scale)-1, (int) (p.getY() * scale)-1, 2, 2);
     }
 
     g2.setColor(Color.BLUE);

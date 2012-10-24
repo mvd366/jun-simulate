@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
 import java.util.logging.SimpleFormatter;
 
 import javax.imageio.ImageIO;
@@ -42,9 +43,11 @@ public class ExperimentTask implements Callable<Boolean> {
   final TaskConfig config;
   final ExperimentStats stats[];
   String saveDirectory = null;
-
-  public ExperimentTask(final TaskConfig config, final ExperimentStats[] stats) {
+  private final ExecutorService workers;
+  
+  public ExperimentTask(final TaskConfig config, final ExperimentStats[] stats, final ExecutorService workers) {
     super();
+    this.workers = workers;
     this.config = config;
     this.stats = stats;
     this.saveDirectory = String.format("s%d_t%d_x%d"
@@ -98,6 +101,7 @@ public class ExperimentTask implements Callable<Boolean> {
     int totalCaptureDisks = disks.size();
     int totalSolutionPoints = solutionPoints.size();
     int m = 0;
+    
     // Keep going while there are either solution points or capture disks
     Collection<Receiver> receivers = new LinkedList<Receiver>();
     while (m < this.config.numReceivers && !solutionPoints.isEmpty()
@@ -130,6 +134,10 @@ public class ExperimentTask implements Callable<Boolean> {
           maxPoint = p;
           maxPointDisks = pDisk;
         }
+        // No intersections, so remove
+        else if(pDisk.size() == 0){
+          solutionPoints.remove(p);
+        }
       }
 
       // Remove the highest point and its solution disks
@@ -140,6 +148,12 @@ public class ExperimentTask implements Callable<Boolean> {
         receivers.add(r);
         solutionPoints.remove(maxPoint);
         disks.removeAll(maxPointDisks);
+        
+        for(Point2D p : solutionPoints){
+          if(!checkPointInRange(p, this.config.transmitters)){
+            
+          }
+        }
       }
       // No solutions found?
       else {
@@ -209,7 +223,7 @@ public class ExperimentTask implements Callable<Boolean> {
       }
       Point2D.Float center = new Point2D.Float((float) disk.disk.getCenterX(),
           (float) disk.disk.getCenterY());
-      if (ExperimentTask.checkPoint(center, transmitters)) {
+      if (ExperimentTask.checkPointInRange(center, transmitters)) {
         solutionPoints.add(center);
       }
     }
@@ -220,7 +234,7 @@ public class ExperimentTask implements Callable<Boolean> {
         Collection<Point2D> intersections = Main.generateIntersections(d1, d2);
         if (intersections != null && !intersections.isEmpty()) {
           for (Point2D p : intersections) {
-            if (ExperimentTask.checkPoint(p, transmitters)) {
+            if (ExperimentTask.checkPointInRange(p, transmitters)) {
               solutionPoints.add(p);
             }
           }
@@ -240,7 +254,7 @@ public class ExperimentTask implements Callable<Boolean> {
    * @return {@code true} if the point is within the transmit radius of at
    *         leaset one transmitter.
    */
-  private static boolean checkPoint(Point2D p,
+  private static boolean checkPointInRange(Point2D p,
       Collection<Transmitter> transmitters) {
     for (Transmitter t : transmitters) {
       double d = Math.sqrt(Math.pow(p.getX() - t.getX(), 2)
@@ -253,7 +267,7 @@ public class ExperimentTask implements Callable<Boolean> {
   }
 
   private void saveImage(DisplayPanel display, String fileName) {
-    BufferedImage img = new BufferedImage(1920, 1080,
+    BufferedImage img = new BufferedImage(Main.config.renderWidth, Main.config.renderHeight,
         BufferedImage.TYPE_INT_RGB);
     Graphics g = img.createGraphics();
 
