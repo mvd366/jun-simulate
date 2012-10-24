@@ -217,6 +217,9 @@ public class ExperimentTask {
           }
           try {
             Receiver r = future.get();
+            if(r == null){
+              continue;
+            }
             if (maxReceiver == null
                 || r.coveringDisks.size() > maxReceiver.coveringDisks.size()) {
               maxReceiver = r;
@@ -231,7 +234,7 @@ public class ExperimentTask {
         e.printStackTrace();
       }
       long duration = System.currentTimeMillis() - start;
-      System.out.printf("Computed %,d comparisons in %,dms.",numComparisons, duration);
+      System.out.printf("Computed %,d comparisons in %,dms.\n",numComparisons, duration);
 
       if (maxReceiver == null) {
         break;
@@ -259,7 +262,7 @@ public class ExperimentTask {
             + "1%03d", (m + 1));
         saveImage(display, saveName);
         display.clear();
-
+        
       }
 
       this.stats[m].addCoverage(captureRatio);
@@ -354,13 +357,16 @@ public class ExperimentTask {
   }
 
   private void saveImage(DisplayPanel display, String fileName) {
+    long start = System.currentTimeMillis();
+    File imageFile = new File(fileName + ".png");
+    System.out.printf("Rendering \"%s\".\n", imageFile);
     BufferedImage img = new BufferedImage(Main.config.renderWidth,
         Main.config.renderHeight, BufferedImage.TYPE_INT_RGB);
     Graphics g = img.createGraphics();
 
     display.render(g, img.getWidth(), img.getHeight());
 
-    File imageFile = new File(fileName + ".png");
+    
     imageFile.mkdirs();
     if (!imageFile.exists()) {
       try {
@@ -377,6 +383,8 @@ public class ExperimentTask {
       e.printStackTrace();
     }
     g.dispose();
+    long duration = System.currentTimeMillis() - start;
+    System.out.printf("Rendering took %,dms.\n",duration);
   }
 
 }
