@@ -152,8 +152,7 @@ public class ExperimentTask {
 
     Collection<Point2D> solutionPoints = ExperimentTask.generateSolutionPoints(
         disks, this.config.transmitters);
-    System.out.println("[" + this.config.trialNumber + "] Generated "
-        + solutionPoints.size() + " solution points.");
+    System.out.printf("[%d] Generated %,d solution points.\n",this.config.trialNumber, solutionPoints.size());
     if (Main.config.generateImages) {
       display.setTransmitters(this.config.transmitters);
       display.setSolutionPoints(solutionPoints);
@@ -204,7 +203,7 @@ public class ExperimentTask {
         sumTasks += t.solutionPoints.size();
       }
       
-      System.out.println("Divided " + sumTasks + "/" + numPoints + " points");
+      System.out.printf("Divided %,d/%,d points.\n",sumTasks,numPoints);
       long start = System.currentTimeMillis();
       Receiver maxReceiver = null;
       try {

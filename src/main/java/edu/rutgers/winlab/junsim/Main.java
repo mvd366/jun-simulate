@@ -65,10 +65,11 @@ public class Main {
     }
 
     if (Main.config.numThreads < 1) {
-      workers = Executors.newFixedThreadPool(Runtime.getRuntime()
-          .availableProcessors());
-      maxConcurrentTasks = Runtime.getRuntime().availableProcessors();
-      System.out.println("Using " + Runtime.getRuntime().availableProcessors()
+      Main.config.numThreads = Runtime.getRuntime()
+          .availableProcessors();
+      workers = Executors.newFixedThreadPool(Main.config.numThreads);
+      maxConcurrentTasks = Main.config.numThreads;
+      System.out.println("Using " + Main.config.numThreads
           + " threads based on process availability.");
     } else {
       workers = Executors.newFixedThreadPool(Main.config.numThreads);
