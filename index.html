@@ -135,14 +135,16 @@ parameter in more detail.</p>
   <dd>The filename of the statistics output file.  The file is written in
   comma-separated values (CSV) format.</dd>
   <dt>numThreads: integer</dt>
-  <dd>The number of threads to spawn and also the number of concurrent
-  simulations to run.  Given that simulations can consume a lot of RAM, be
-  careful how many you run simultaneously.</dd>
+  <dd>The number of threads to spawn to perform the simulation.</dd>
   <dt>generateImages: boolean</dt>
-  <dd>If <em>true</em>, then the simulator will produce PNG files in its
-  working directory each time it notices an output with a large number of
-  receivers (&gt 50% of transmitters) that don't "cover" all capture
-  disks.</dd>
+  <dd>If <em>true</em>, then the simulator will produce PNG files in a
+  subdirectory of its working directory according to the parameters it is
+  using. The directory name is "sX_tY_xZ" where X is the random seed, Y is the
+  number of transmitters, and Z is the trial number.</dd>
+  <dt>maxRangeMeters: float</dt>
+  <dd>The maximum distance a receiver can receive packets from a transmitter.
+  This is applied to the dimensions above, so be sure to use a sensible value
+  for your simulation.</dd>
 </dl>
 
 <h2>Screenshots</h2>
