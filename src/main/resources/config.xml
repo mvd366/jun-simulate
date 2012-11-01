@@ -1,21 +1,43 @@
 <edu.rutgers.winlab.junsim.Config>
+  <!-- Relative distance between two transmitters and a receiver -->
   <beta>0.65</beta>
+  <!-- Number of transmitters to place in the simulation. -->
   <numTransmitters>10</numTransmitters>
+  <!-- Maximum number of receivers to try and place. -->
   <numReceivers>3</numReceivers>
+  <!-- UNUSED. Power value for calculating beta if not supplied. -->
   <radioPower>2.0</radioPower>
+  <!-- UNUSED. Alpha value for calculating beta if not supplied. -->
   <radioAlpha>2.68</radioAlpha>
+  <!-- Horizontal dimension for the region in which to place transmitters. -->
   <squareWidth>100</squareWidth>
+  <!-- Veritcal dimension for the region in which to place transmitters. -->
   <squareHeight>100</squareHeight>
+  <!-- Horizontal dimension for the region in which to place receivers.
+       Must be equal to or greater than squareWidth. -->
   <universeWidth>200</universeWidth>
+  <!-- Vertical dimension for the region in which to place receivers.
+       Must be equal to or greater than squareHeight. -->
   <universeHeight>200</universeHeight>
+  <!-- Width dimension for produced PNG images. -->
   <renderWidth>1920</renderWidth>
+  <!-- Height dimension for produced PNG images. -->
   <renderHeight>1080</renderHeight>
+  <!-- Seed for generating random positions. -->
   <randomSeed>2</randomSeed>
+  <!-- Whether or not to step through the algorithm with a GUI. -->
   <showDisplay>false</showDisplay>
+  <!-- Number of repeated trials to perform. -->
   <numTrials>1</numTrials>
+  <!-- Output file for statistics. -->
   <outputFileName>test.csv</outputFileName>
+  <!-- Number of worker threads to utilize. If the value is less than
+       or equal to 0, then the number of workers will equal the number
+       of logical processors available. -->
   <numThreads>0</numThreads>
+  <!-- Whether or not to generate PNG images of each step. -->
   <generateImages>true</generateImages>
+  <!-- How far a transmitter's packet can be received by a receiver. -->
   <maxRangeMeters>40</maxRangeMeters>
 </edu.rutgers.winlab.junsim.Config>
 
