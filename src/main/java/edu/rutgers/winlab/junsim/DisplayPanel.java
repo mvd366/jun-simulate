@@ -39,6 +39,7 @@ public class DisplayPanel extends JPanel {
   private Collection<CaptureDisk> disks = new LinkedList<CaptureDisk>();
   private Collection<Point2D> points = new LinkedList<Point2D>();
   private Collection<Receiver> receiverPoints = new LinkedList<Receiver>();
+  private Collection<CaptureDiskGroup> groups = new LinkedList<CaptureDiskGroup>();
 
   public DisplayPanel() {
     super();
@@ -48,11 +49,15 @@ public class DisplayPanel extends JPanel {
   @Override
   protected void paintComponent(Graphics g) {
     super.paintComponent(g);
+    if (!this.isVisible()) {
+      return;
+    }
     this.render(g, this.getWidth(), this.getHeight());
 
   }
 
   public void render(Graphics g, int width, int height) {
+    
 
     // Figure-out the scaling based on aspect-ratios
 
@@ -106,6 +111,15 @@ public class DisplayPanel extends JPanel {
     for (Receiver p : receiverPoints) {
       p.draw(g2, scale, scale);
     }
+    float numGroups = this.groups.size();
+    int i = 0;
+    for(CaptureDiskGroup grp : this.groups){
+      float hue = i/numGroups;
+      Color c = Color.getHSBColor(hue, .9f, .9f);
+      g2.setColor(c);
+      grp.draw(g2,scale,scale);
+      ++i;
+    }
 
     g2.setColor(Color.WHITE);
 
@@ -143,6 +157,12 @@ public class DisplayPanel extends JPanel {
   public void setReceiverPoints(Collection<Receiver> points) {
     this.receiverPoints.clear();
     this.receiverPoints.addAll(points);
+    this.repaint(10);
+  }
+
+  public void setCaptureDiskGroups(Collection<CaptureDiskGroup> groups) {
+    this.groups.clear();
+    this.groups.addAll(groups);
     this.repaint(10);
   }
 }

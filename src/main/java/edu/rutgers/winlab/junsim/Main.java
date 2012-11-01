@@ -28,7 +28,6 @@ import java.io.PrintWriter;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -132,7 +131,7 @@ public class Main {
       conf.numTransmitters = numTransmitters;
       conf.transmitters = transmitters;
       conf.numReceivers = Main.config.numReceivers;
-      ExperimentTask task = new ExperimentTask(conf, stats, workers);
+      HittingExperimentTask task = new HittingExperimentTask(conf, stats, workers);
       task.perform();
 //      tasks.add(task);
 

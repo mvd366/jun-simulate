@@ -65,4 +65,9 @@ public class CaptureDisk implements Drawable {
   public int hashCode() {
     return this.disk.hashCode();
   }
+  
+  @Override
+  public String toString(){
+    return this.disk.toString();
+  }
 }

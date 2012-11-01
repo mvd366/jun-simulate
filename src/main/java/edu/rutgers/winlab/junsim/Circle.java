@@ -17,6 +17,8 @@
  */
 package edu.rutgers.winlab.junsim;
 
+import java.awt.AlphaComposite;
+import java.awt.Composite;
 import java.awt.Graphics2D;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Point2D;
@@ -26,16 +28,46 @@ import java.awt.geom.Point2D;
  * 
  */
 public class Circle implements Drawable {
+  static int nextId = 0;
+  private static synchronized int getId(){
+    return nextId++;
+  }
+  
   public float radius = 0f;
   public Point2D.Float center = new Point2D.Float();
+  
+  private final int id;
+  
+  public Circle(){
+    super();
+    this.id = getId();
+  }
+  
+  @Override
+  public String toString(){
+    return "C " + this.id;
+  }
 
   @Override
   public void draw(Graphics2D g, float scaleX, float scaleY) {
+    this.draw(g, scaleX, scaleY, false);
+  }
+
+  public void draw(Graphics2D g, float scaleX, float scaleY, boolean fill) {
     AffineTransform origTransform = g.getTransform();
 
-    g.drawOval((int) ((this.center.getX() - this.radius)*scaleX),
-        (int) ((this.center.getY() - radius)*scaleY), (int) (this.radius * 2 * scaleX),
-        (int) (this.radius * 2 * scaleY));
+    if (fill) {
+      Composite origComposite = g.getComposite();
+      g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.1f));
+      g.fillOval((int) ((this.center.getX() - this.radius) * scaleX),
+          (int) ((this.center.getY() - radius) * scaleY),
+          (int) (this.radius * 2 * scaleX), (int) (this.radius * 2 * scaleY));
+      g.setComposite(origComposite);
+    }
+
+    g.drawOval((int) ((this.center.getX() - this.radius) * scaleX),
+        (int) ((this.center.getY() - radius) * scaleY),
+        (int) (this.radius * 2 * scaleX), (int) (this.radius * 2 * scaleY));
 
     g.setTransform(origTransform);
   }
@@ -45,12 +77,18 @@ public class Circle implements Drawable {
         + Math.pow(p.getY() - this.center.getY(), 2));
     return this.radius >= dist;
   }
-  
-  public double getCenterX(){
+
+  public boolean intersects(Circle c) {
+    double dist = Math.sqrt(Math.pow(this.center.getX() - c.center.getX(), 2)
+        + Math.pow(this.center.getY() - c.center.getY(), 2));
+    return dist <= (this.radius + c.radius);
+  }
+
+  public double getCenterX() {
     return this.center.getX();
   }
-  
-  public double getCenterY(){
+
+  public double getCenterY() {
     return this.center.getY();
   }
 
