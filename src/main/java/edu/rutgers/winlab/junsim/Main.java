@@ -131,7 +131,8 @@ public class Main {
       conf.numTransmitters = numTransmitters;
       conf.transmitters = transmitters;
       conf.numReceivers = Main.config.numReceivers;
-      HittingExperimentTask task = new HittingExperimentTask(conf, stats, workers);
+//      HittingExperimentTask task = new HittingExperimentTask(conf, stats, workers);
+      GreedyExperimentTask task = new GreedyExperimentTask(conf, stats, workers);
       task.perform();
 //      tasks.add(task);
 
