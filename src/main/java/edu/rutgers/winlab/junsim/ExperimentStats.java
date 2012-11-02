@@ -33,17 +33,15 @@ public class ExperimentStats {
   int numberTransmitters = 0;
   int numberReceivers = 0;
 
-  // Array that holds statistics for coverages, mean collisions, min collisions,
-  // and max collisions.
-  //List<Float>[] statistics = (List<Float>[]){new LinkedList<Float>(), new LinkedList<Float>(),
-  //  new LinkedList<Float>(), new LinkedList<Float>()};
+  // Array that holds statistics for coverages, mean contention, min contention,
+  // and max contention.
   List<Float>[] statistics = (List<Float>[]) new List[4];
   boolean[] sorted = {false, false, false, false};
   // Indices into the above array.
   private final static int COVERAGE       = 0;
-  private final static int COLLISIONS     = 1;
-  private final static int MIN_COLLISIONS = 2;
-  private final static int MAX_COLLISIONS = 3;
+  private final static int CONTENTION     = 1;
+  private final static int MIN_CONTENTION = 2;
+  private final static int MAX_CONTENTION = 3;
 
   public ExperimentStats() {
     // Seems to be difficult to default initialize an array of generics
@@ -74,16 +72,16 @@ public class ExperimentStats {
     addStatistic(coverage, COVERAGE);
   }
 
-  synchronized void addCollisions(float collision) {
-    addStatistic(collision, COLLISIONS);
+  synchronized void addContention(float contention) {
+    addStatistic(contention, CONTENTION);
   }
 
-  synchronized void addMinCollisions(float collision) {
-    addStatistic(collision, MIN_COLLISIONS);
+  synchronized void addMinContention(float contention) {
+    addStatistic(contention, MIN_CONTENTION);
   }
 
-  synchronized void addMaxCollisions(float collision) {
-    addStatistic(collision, MAX_COLLISIONS);
+  synchronized void addMaxContention(float contention) {
+    addStatistic(contention, MAX_CONTENTION);
   }
 
   private synchronized float getMinStatistic(int index) {
@@ -103,16 +101,16 @@ public class ExperimentStats {
     return getMinStatistic(COVERAGE);
   }
 
-  float getMinCollisions() {
-    return getMinStatistic(COLLISIONS);
+  float getMinContention() {
+    return getMinStatistic(CONTENTION);
   }
 
-  float getMinMinCollisions() {
-    return getMinStatistic(MIN_COLLISIONS);
+  float getMinMinContention() {
+    return getMinStatistic(MIN_CONTENTION);
   }
 
-  float getMinMaxCollisions() {
-    return getMinStatistic(MAX_COLLISIONS);
+  float getMinMaxContention() {
+    return getMinStatistic(MAX_CONTENTION);
   }
 
   private float getMaxStatistic(int index) {
@@ -130,16 +128,16 @@ public class ExperimentStats {
     return getMaxStatistic(COVERAGE);
   }
 
-  float getMaxCollisions() {
-    return getMaxStatistic(COLLISIONS);
+  float getMaxContention() {
+    return getMaxStatistic(CONTENTION);
   }
 
-  float getMaxMinCollisions() {
-    return getMaxStatistic(MIN_COLLISIONS);
+  float getMaxMinContentions() {
+    return getMaxStatistic(MIN_CONTENTION);
   }
 
-  float getMaxMaxCollisions() {
-    return getMaxStatistic(MAX_COLLISIONS);
+  float getMaxMaxContentions() {
+    return getMaxStatistic(MAX_CONTENTION);
   }
 
   private float getMedianStatistic(int index) {
@@ -157,16 +155,16 @@ public class ExperimentStats {
     return getMedianStatistic(COVERAGE);
   }
 
-  float getMedianCollisions() {
-    return getMedianStatistic(COLLISIONS);
+  float getMedianContention() {
+    return getMedianStatistic(CONTENTION);
   }
 
-  float getMedianMinCollisions() {
-    return getMedianStatistic(MIN_COLLISIONS);
+  float getMedianMinContention() {
+    return getMedianStatistic(MIN_CONTENTION);
   }
 
-  float getMedianMaxCollisions() {
-    return getMedianStatistic(MAX_COLLISIONS);
+  float getMedianMaxContention() {
+    return getMedianStatistic(MAX_CONTENTION);
   }
 
   private float getMeanStatistic(int index) {
@@ -185,16 +183,16 @@ public class ExperimentStats {
     return getMeanStatistic(COVERAGE);
   }
 
-  float getMeanCollisions() {
-    return getMeanStatistic(COLLISIONS);
+  float getMeanContention() {
+    return getMeanStatistic(CONTENTION);
   }
 
-  float getMeanMinCollisions() {
-    return getMeanStatistic(MIN_COLLISIONS);
+  float getMeanMinContention() {
+    return getMeanStatistic(MIN_CONTENTION);
   }
 
-  float getMeanMaxCollisions() {
-    return getMeanStatistic(MAX_COLLISIONS);
+  float getMeanMaxContention() {
+    return getMeanStatistic(MAX_CONTENTION);
   }
 
   private float get95PercentileStatistic(int index) {
@@ -213,15 +211,15 @@ public class ExperimentStats {
     return get95PercentileStatistic(COVERAGE);
   }
 
-  float get95PercentileCollisions() {
-    return get95PercentileStatistic(COLLISIONS);
+  float get95PercentileContention() {
+    return get95PercentileStatistic(CONTENTION);
   }
 
-  float get95PercentileMinCollisions() {
-    return get95PercentileStatistic(MIN_COLLISIONS);
+  float get95PercentileMinContention() {
+    return get95PercentileStatistic(MIN_CONTENTION);
   }
 
-  float get95PercentileMaxCollisions() {
-    return get95PercentileStatistic(MAX_COLLISIONS);
+  float get95PercentileMaxContention() {
+    return get95PercentileStatistic(MAX_CONTENTION);
   }
 }

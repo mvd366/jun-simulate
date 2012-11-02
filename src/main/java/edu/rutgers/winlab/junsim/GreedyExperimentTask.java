@@ -264,23 +264,20 @@ public class GreedyExperimentTask {
 
       // Calculate collision rates for each transmitter
       // Store the min, max, and mean
-      float mean_coll_rate = 0.0f;
-      float min_coll_rate = 1.0f;
-      float max_coll_rate = 0.0f;
+      float mean_contention = 0.0f;
+      float min_contention = this.config.numTransmitters;
+      float max_contention = 0.0f;
       for (Transmitter txer : this.config.transmitters) {
-        // Use the number of collisions not captured to find the collision rate
+        // Calculate the number of transmitters in contention
         // Subtract 1 because this transmitter can never be in contention with itself
         int num_in_contention = this.config.numTransmitters - 1 - capturedCollisions.get(txer).size();
-        // Collision probability is 1 - (psucc)^(# contention) == 1 - (1 - pcoll)^(#contention)
-        // Assuming 500 microsecond packets and a transmission interval of 1 second
-        float pcoll = 1.0f - (float)Math.pow(1.0 - 2.0*0.0005/1.0, num_in_contention);
-        min_coll_rate = Math.min(pcoll, min_coll_rate);
-        max_coll_rate = Math.max(pcoll, max_coll_rate);
-        mean_coll_rate = pcoll / this.config.numTransmitters;
-        this.stats[m].addCollisions(mean_coll_rate);
-        this.stats[m].addMinCollisions(min_coll_rate);
-        this.stats[m].addMaxCollisions(max_coll_rate);
+        min_contention = Math.min(num_in_contention, min_contention);
+        max_contention = Math.max(num_in_contention, max_contention);
+        mean_contention += (float)num_in_contention / this.config.numTransmitters;
       }
+      this.stats[m].addContention(mean_contention);
+      this.stats[m].addMinContention(min_contention);
+      this.stats[m].addMaxContention(max_contention);
 
       float capturedDisks = totalCaptureDisks - disks.size();
       float captureRatio = (capturedDisks / totalCaptureDisks);

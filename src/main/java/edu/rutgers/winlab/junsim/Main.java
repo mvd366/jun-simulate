@@ -110,7 +110,7 @@ public class Main {
     }
 
     fileWriter
-        .println("# Tx, # Rx, Min % Covered, Med. % Covered, Mean % Covered, 95% Coverage, Max % Covered, Min % Collisions, Med. % Collisions, Mean % Collisions, 95% Coverage, Max % Collisions");
+        .println("# Tx, # Rx, Min % Covered, Med. % Covered, Mean % Covered, 95% Coverage, Max % Covered, Min Contention, Med. Contention, Mean Contention, 95% Contention, Max Contention");
 
 //    List<ExperimentTask> tasks = new LinkedList<ExperimentTask>();
 
@@ -189,8 +189,8 @@ public class Main {
           s.numberTransmitters, s.numberReceivers, s.getMinCoverage(),
           s.getMedianCoverage(), s.getMeanCoverage(), s.get95PercentileCoverage(),
           s.getMaxCoverage(),
-          s.getMinCollisions(), s.getMedianCollisions(), s.getMeanCollisions(),
-          s.get95PercentileCollisions(), s.getMaxCollisions()
+          s.getMinContention(), s.getMedianContention(), s.getMeanContention(),
+          s.get95PercentileContention(), s.getMaxContention()
           );
     }
     fileWriter.flush();
