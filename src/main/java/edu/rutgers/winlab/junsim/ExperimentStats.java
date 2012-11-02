@@ -20,6 +20,7 @@ package edu.rutgers.winlab.junsim;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Vector;
 
 /**
  * @author Robert Moore
@@ -32,78 +33,195 @@ public class ExperimentStats {
   int numberTransmitters = 0;
   int numberReceivers = 0;
 
-  List<Float> coverages = new LinkedList<Float>();
-  boolean sorted = false;
+  // Array that holds statistics for coverages, mean collisions, min collisions,
+  // and max collisions.
+  //List<Float>[] statistics = (List<Float>[]){new LinkedList<Float>(), new LinkedList<Float>(),
+  //  new LinkedList<Float>(), new LinkedList<Float>()};
+  List<Float>[] statistics = (List<Float>[]) new List[4];
+  boolean[] sorted = {false, false, false, false};
+  // Indices into the above array.
+  private final static int COVERAGE       = 0;
+  private final static int COLLISIONS     = 1;
+  private final static int MIN_COLLISIONS = 2;
+  private final static int MAX_COLLISIONS = 3;
+
+  public ExperimentStats() {
+    // Seems to be difficult to default initialize an array of generics
+    // Initialize stastistics to empty lists here.
+    for (int i = 0; i < statistics.length; ++i) {
+      statistics[i] = new LinkedList<Float>();
+    }
+  }
 
   public void clear() {
 
     this.numberReceivers = 0;
     this.numberTransmitters = 0;
-    this.coverages.clear();
-    this.sorted = false;
+    for (List<Float> statistic : this.statistics) {
+      statistic.clear();
+    }
+    for (Boolean sort : this.sorted) {
+      sort = false;
+    }
+  }
+
+  private synchronized void addStatistic(float val, int index) {
+    this.statistics[index].add(val);
+    this.sorted[index] = false;
   }
 
   synchronized void addCoverage(float coverage) {
-    this.coverages.add(coverage);
-    this.sorted = false;
+    addStatistic(coverage, COVERAGE);
+  }
+
+  synchronized void addCollisions(float collision) {
+    addStatistic(collision, COLLISIONS);
+  }
+
+  synchronized void addMinCollisions(float collision) {
+    addStatistic(collision, MIN_COLLISIONS);
+  }
+
+  synchronized void addMaxCollisions(float collision) {
+    addStatistic(collision, MAX_COLLISIONS);
+  }
+
+  private synchronized float getMinStatistic(int index) {
+    if(this.statistics[index].size() == 0){
+      return Float.NaN;
+    }
+    
+    if (!this.sorted[index]) {
+      Collections.sort(this.statistics[index]);
+      this.sorted[index] = true;
+    }
+    
+    return this.statistics[index].get(0);
   }
 
   float getMinCoverage() {
-    if(this.coverages.size() == 0){
-      return Float.NaN;
-    }
-    
-    if (!this.sorted) {
-      Collections.sort(this.coverages);
-      this.sorted = true;
-    }
-    
-    return this.coverages.get(0);
+    return getMinStatistic(COVERAGE);
   }
 
-  float getMedianCoverage() {
-    if(this.coverages.size() == 0){
-      return Float.NaN;
-    }
-    if (!this.sorted) {
-      Collections.sort(this.coverages);
-      this.sorted = true;
-    }
-    return this.coverages.get(this.coverages.size() / 2);
+  float getMinCollisions() {
+    return getMinStatistic(COLLISIONS);
   }
 
-  float getMeanCoverage() {
-    if(this.coverages.size() == 0){
+  float getMinMinCollisions() {
+    return getMinStatistic(MIN_COLLISIONS);
+  }
+
+  float getMinMaxCollisions() {
+    return getMinStatistic(MAX_COLLISIONS);
+  }
+
+  private float getMaxStatistic(int index) {
+    if(this.statistics[index].size() == 0){
       return Float.NaN;
     }
-    float totalCoverage = 0;
-    for (Float c : this.coverages) {
-      totalCoverage += c;
+    if (!this.sorted[index]) {
+      Collections.sort(this.statistics[index]);
+      this.sorted[index] = true;
     }
-
-    return totalCoverage / this.coverages.size();
+    return this.statistics[index].get(this.statistics[index].size() - 1);
   }
 
   float getMaxCoverage() {
-    if(this.coverages.size() == 0){
-      return Float.NaN;
-    }
-    if (!this.sorted) {
-      Collections.sort(this.coverages);
-      this.sorted = true;
-    }
-    return this.coverages.get(this.coverages.size() - 1);
+    return getMaxStatistic(COVERAGE);
   }
 
-  float get95Percentile() {
-    if(this.coverages.size() == 0){
+  float getMaxCollisions() {
+    return getMaxStatistic(COLLISIONS);
+  }
+
+  float getMaxMinCollisions() {
+    return getMaxStatistic(MIN_COLLISIONS);
+  }
+
+  float getMaxMaxCollisions() {
+    return getMaxStatistic(MAX_COLLISIONS);
+  }
+
+  private float getMedianStatistic(int index) {
+    if(this.statistics[index].size() == 0){
       return Float.NaN;
     }
-    if (!this.sorted) {
-      Collections.sort(this.coverages);
-      this.sorted = true;
+    if (!this.sorted[index]) {
+      Collections.sort(this.statistics[index]);
+      this.sorted[index] = true;
+    }
+    return this.statistics[index].get(this.statistics[index].size() / 2);
+  }
+
+  float getMedianCoverage() {
+    return getMedianStatistic(COVERAGE);
+  }
+
+  float getMedianCollisions() {
+    return getMedianStatistic(COLLISIONS);
+  }
+
+  float getMedianMinCollisions() {
+    return getMedianStatistic(MIN_COLLISIONS);
+  }
+
+  float getMedianMaxCollisions() {
+    return getMedianStatistic(MAX_COLLISIONS);
+  }
+
+  private float getMeanStatistic(int index) {
+    if(this.statistics[index].size() == 0){
+      return Float.NaN;
+    }
+    float totalCoverage = 0;
+    for (Float c : this.statistics[index]) {
+      totalCoverage += c;
     }
 
-    return this.coverages.get((int) (this.coverages.size() * .95));
+    return totalCoverage / this.statistics[index].size();
+  }
+
+  float getMeanCoverage() {
+    return getMeanStatistic(COVERAGE);
+  }
+
+  float getMeanCollisions() {
+    return getMeanStatistic(COLLISIONS);
+  }
+
+  float getMeanMinCollisions() {
+    return getMeanStatistic(MIN_COLLISIONS);
+  }
+
+  float getMeanMaxCollisions() {
+    return getMeanStatistic(MAX_COLLISIONS);
+  }
+
+  private float get95PercentileStatistic(int index) {
+    if(this.statistics[index].size() == 0){
+      return Float.NaN;
+    }
+    if (!this.sorted[index]) {
+      Collections.sort(this.statistics[index]);
+      this.sorted[index] = true;
+    }
+
+    return this.statistics[index].get((int) (this.statistics[index].size() * .95));
+  }
+
+  float get95PercentileCoverage() {
+    return get95PercentileStatistic(COVERAGE);
+  }
+
+  float get95PercentileCollisions() {
+    return get95PercentileStatistic(COLLISIONS);
+  }
+
+  float get95PercentileMinCollisions() {
+    return get95PercentileStatistic(MIN_COLLISIONS);
+  }
+
+  float get95PercentileMaxCollisions() {
+    return get95PercentileStatistic(MAX_COLLISIONS);
   }
 }

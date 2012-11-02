@@ -30,6 +30,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -167,6 +168,14 @@ public class GreedyExperimentTask {
 
     // Keep going while there are either solution points or capture disks
     Collection<Receiver> receivers = new LinkedList<Receiver>();
+    // Keep track of which collisions are captured so that packet loss
+    // probabilities can be quickly calculated
+    ConcurrentHashMap<Transmitter, HashSet<Transmitter>> capturedCollisions = new ConcurrentHashMap<Transmitter, HashSet<Transmitter>>();
+    // Add an empty set for each transmitter
+    for (Transmitter txer : this.config.transmitters) {
+      capturedCollisions.put(txer, new HashSet<Transmitter>());
+    }
+
     while (m < this.config.numReceivers && !solutionPoints.isEmpty()
         && !disks.isEmpty()) {
       System.out.println("[" + this.config.trialNumber
@@ -244,9 +253,34 @@ public class GreedyExperimentTask {
         solutionPoints.addAll(t.solutionPoints);
       }
       
+      // Add the newest receiver and remove newly covered points and disks
       receivers.add(maxReceiver);
       solutionPoints.remove(maxReceiver);
+      // Add captures to each transmitter's capture set for collision calculations
+      for (CaptureDisk disk : maxReceiver.coveringDisks) {
+        capturedCollisions.get(disk.t1).add(disk.t2);
+      }
       disks.removeAll(maxReceiver.coveringDisks);
+
+      // Calculate collision rates for each transmitter
+      // Store the min, max, and mean
+      float mean_coll_rate = 0.0f;
+      float min_coll_rate = 1.0f;
+      float max_coll_rate = 0.0f;
+      for (Transmitter txer : this.config.transmitters) {
+        // Use the number of collisions not captured to find the collision rate
+        // Subtract 1 because this transmitter can never be in contention with itself
+        int num_in_contention = this.config.numTransmitters - 1 - capturedCollisions.get(txer).size();
+        // Collision probability is 1 - (psucc)^(# contention) == 1 - (1 - pcoll)^(#contention)
+        // Assuming 500 microsecond packets and a transmission interval of 1 second
+        float pcoll = 1.0f - (float)Math.pow(1.0 - 2.0*0.0005/1.0, num_in_contention);
+        min_coll_rate = Math.min(pcoll, min_coll_rate);
+        max_coll_rate = Math.max(pcoll, max_coll_rate);
+        mean_coll_rate = pcoll / this.config.numTransmitters;
+        this.stats[m].addCollisions(mean_coll_rate);
+        this.stats[m].addMinCollisions(min_coll_rate);
+        this.stats[m].addMaxCollisions(max_coll_rate);
+      }
 
       float capturedDisks = totalCaptureDisks - disks.size();
       float captureRatio = (capturedDisks / totalCaptureDisks);

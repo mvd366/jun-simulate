@@ -110,7 +110,7 @@ public class Main {
     }
 
     fileWriter
-        .println("# Tx, # Rx, Min % Covered, Med. % Covered, Mean % Covered, 95% Coverage, Max % Covered");
+        .println("# Tx, # Rx, Min % Covered, Med. % Covered, Mean % Covered, 95% Coverage, Max % Covered, Min % Collisions, Med. % Collisions, Mean % Collisions, 95% Coverage, Max % Collisions");
 
 //    List<ExperimentTask> tasks = new LinkedList<ExperimentTask>();
 
@@ -185,10 +185,13 @@ public class Main {
     // # Tx, # Rx, Min % Covered, Med. %
     // Covered, Mean % Covered, Max % Covered, 95% Coverage
     for (ExperimentStats s : stats) {
-      fileWriter.printf("%d, %d, %.4f, %.4f, %.4f, %.4f, %.4f\n",
+      fileWriter.printf("%d, %d, %.4f, %.4f, %.4f, %.4f, %.4f, %.5f, %.5f, %.5f, %.5f, %.5f\n",
           s.numberTransmitters, s.numberReceivers, s.getMinCoverage(),
-          s.getMedianCoverage(), s.getMeanCoverage(), s.get95Percentile(),
-          s.getMaxCoverage());
+          s.getMedianCoverage(), s.getMeanCoverage(), s.get95PercentileCoverage(),
+          s.getMaxCoverage(),
+          s.getMinCollisions(), s.getMedianCollisions(), s.getMeanCollisions(),
+          s.get95PercentileCollisions(), s.getMaxCollisions()
+          );
     }
     fileWriter.flush();
     fileWriter.close();
@@ -362,7 +365,7 @@ public class Main {
    *          the captured transmitter.
    * @param t2
    *          the uncaptured (colliding) transmitter.
-   * @return the capture disk of transmitter t1, else {@code null} if non
+   * @return the capture disk of transmitter t1, else {@code null} if none
    *         exists.
    */
   static CaptureDisk generateCaptureDisk(final Transmitter t1,
