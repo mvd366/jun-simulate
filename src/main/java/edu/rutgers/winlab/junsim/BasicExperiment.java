@@ -43,7 +43,7 @@ import javax.imageio.ImageIO;
  * @author Robert Moore
  * 
  */
-public class GreedyExperimentTask {
+public class BasicExperiment {
 
   /**
    * Configuration for this task.
@@ -73,7 +73,7 @@ public class GreedyExperimentTask {
    * @param workers
    *          worker threadpool to utilize.
    */
-  public GreedyExperimentTask(final TaskConfig config,
+  public BasicExperiment(final TaskConfig config,
       final ExperimentStats[] stats, final ExecutorService workers) {
     super();
     this.workers = workers;
@@ -116,17 +116,27 @@ public class GreedyExperimentTask {
       Point2D maxPoint = null;
       Collection<CaptureDisk> maxPointDisks = null;
       int maxDisks = 0;
+      int totalDisks = this.disks.size();
 
       /*
        * Determine the number of disks that intersect this point. If the number
        * is the new max, then save it. If there are no intersections, remove it.
        */
-      for (Iterator<Point2D> iter = solutionPoints.iterator(); iter.hasNext();) {
+      points: for (Iterator<Point2D> iter = solutionPoints.iterator(); iter.hasNext();) {
         Point2D p = iter.next();
         Collection<CaptureDisk> pDisk = new HashSet<CaptureDisk>();
+        int numIntersect = 0;
+        int diskIndex = 0;
+        
+        
         for (CaptureDisk d : disks) {
-          if (GreedyExperimentTask.checkPointInDisk(p, d)) {
+          if (BasicExperiment.checkPointInDisk(p, d)) {
             pDisk.add(d);
+            ++numIntersect;
+          }
+          ++diskIndex;
+          if((numIntersect + (totalDisks -diskIndex)) < maxDisks){
+            continue points;
           }
         }
         if (pDisk.size() > maxDisks) {
@@ -185,7 +195,7 @@ public class GreedyExperimentTask {
       display.clear();
     }
 
-    Collection<Point2D> solutionPoints = GreedyExperimentTask
+    Collection<Point2D> solutionPoints = BasicExperiment
         .generateSolutionPoints(disks, this.config.transmitters);
     System.out.printf("[%d] Generated %,d solution points.\n",
         this.config.trialNumber, solutionPoints.size());
@@ -223,7 +233,7 @@ public class GreedyExperimentTask {
       int pointsPerTask = (numPoints / numTasks) + 1;
       long numComparisons = disks.size() * (long) numPoints;
 
-      Collection<SolutionCheckTask> tasks = new LinkedList<GreedyExperimentTask.SolutionCheckTask>();
+      Collection<SolutionCheckTask> tasks = new LinkedList<BasicExperiment.SolutionCheckTask>();
       Iterator<Point2D> pointIter = solutionPoints.iterator();
       SolutionCheckTask task = new SolutionCheckTask();
       task.solutionPoints = new LinkedList<Point2D>();
@@ -341,7 +351,7 @@ public class GreedyExperimentTask {
       // Recompute solution points based on remaining disks
       if (Main.config.stripSolutionPoints) {
         solutionPoints.clear();
-        solutionPoints = GreedyExperimentTask.generateSolutionPoints(disks,
+        solutionPoints = BasicExperiment.generateSolutionPoints(disks,
             this.config.transmitters);
         System.out.println("[" + this.config.trialNumber + "] Regenerated "
             + solutionPoints.size() + " solution points.");
@@ -384,7 +394,7 @@ public class GreedyExperimentTask {
       }
       Point2D.Float center = new Point2D.Float((float) disk.disk.getCenterX(),
           (float) disk.disk.getCenterY());
-      if (GreedyExperimentTask.checkPointInRange(center, transmitters)) {
+      if (BasicExperiment.checkPointInRange(center, transmitters)) {
         solutionPoints.add(center);
       }
     }
@@ -395,7 +405,7 @@ public class GreedyExperimentTask {
         Collection<Point2D> intersections = Main.generateIntersections(d1, d2);
         if (intersections != null && !intersections.isEmpty()) {
           for (Point2D p : intersections) {
-            if (GreedyExperimentTask.checkPointInRange(p, transmitters)) {
+            if (BasicExperiment.checkPointInRange(p, transmitters)) {
               solutionPoints.add(p);
             }
           }
