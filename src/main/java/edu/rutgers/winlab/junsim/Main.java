@@ -157,7 +157,7 @@ public class Main {
       conf.transmitters = transmitters;
       conf.numReceivers = Main.config.numReceivers;
 
-      GreedyExperimentTask task = new GreedyExperimentTask(conf, stats, workers);
+      BasicExperiment task = new BasicExperiment(conf, stats, workers);
       task.perform();
     } // End number of trials
 
