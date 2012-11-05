@@ -17,16 +17,28 @@
  */
 package edu.rutgers.winlab.junsim;
 
-import java.awt.geom.Point2D;
 import java.util.Collection;
 
 /**
+ * Configuration for a simulation task.
  * @author Robert Moore
  *
  */
 public class TaskConfig {
+  /**
+   * The ordinal number of this trial (0th, 1st, 2nd, etc.)
+   */
   int trialNumber = 0;
+  /**
+   * Total number of transmitters used.
+   */
   int numTransmitters;
+  /**
+   * Collection of transmitters to use.
+   */
   Collection<Transmitter> transmitters;
+  /**
+   * Maximum number of receivers to place.
+   */
   int numReceivers;
 }

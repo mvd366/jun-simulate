@@ -23,8 +23,6 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
-import java.util.Formatter;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -34,42 +32,80 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.logging.SimpleFormatter;
 
 import javax.imageio.ImageIO;
-import javax.swing.JFrame;
 
 /**
+ * A basic experimental simulation task that generates receiver positions based
+ * on intersections of capture disks and tests each one to find the maximal
+ * overlap.
+ * 
  * @author Robert Moore
  * 
  */
 public class GreedyExperimentTask {
 
+  /**
+   * Configuration for this task.
+   */
   final TaskConfig config;
+  /**
+   * Statistics to update.
+   */
   final ExperimentStats stats[];
+  /**
+   * Name of the directory in which to save images.
+   */
   String saveDirectory = null;
+  /**
+   * Pool of worker threads to utilize.
+   */
   private final ExecutorService workers;
 
-  public GreedyExperimentTask(final TaskConfig config, final ExperimentStats[] stats,
-      final ExecutorService workers) {
+  /**
+   * Creates a new experiment task with the specific configuration, global stats
+   * to update, and worker pool.
+   * 
+   * @param config
+   *          configuration to use.
+   * @param stats
+   *          statistics to update at the end
+   * @param workers
+   *          worker threadpool to utilize.
+   */
+  public GreedyExperimentTask(final TaskConfig config,
+      final ExperimentStats[] stats, final ExecutorService workers) {
     super();
     this.workers = workers;
     this.config = config;
     this.stats = stats;
     this.saveDirectory = String.format("s%d_t%d_x%d"
         + (Main.config.stripSolutionPoints ? "_S" : ""),
-        Main.config.randomSeed, this.config.numTransmitters,
-        this.config.trialNumber);
+        Long.valueOf(Main.config.randomSeed),
+        Integer.valueOf(this.config.numTransmitters),
+        Integer.valueOf(this.config.trialNumber));
   }
 
+  /**
+   * Private class used to parallelize the checking of possible solution points.
+   * 
+   * @author Robert Moore
+   * 
+   */
   private static final class SolutionCheckTask implements Callable<Receiver> {
 
+    /**
+     * Set of points this task should check.
+     */
     Collection<Point2D> solutionPoints;
+    /**
+     * Set of capture disks to check for intersections
+     */
     Collection<CaptureDisk> disks;
-    GreedyExperimentTask parent;
 
-    
-    
+    /**
+     * Creates a new solution check task.
+     */
     public SolutionCheckTask() {
       super();
     }
@@ -81,17 +117,15 @@ public class GreedyExperimentTask {
       Collection<CaptureDisk> maxPointDisks = null;
       int maxDisks = 0;
 
-      // For each solution point, map the set of capture disks that contain
-      // it
-
-      // System.out.println("[" + this.config.trialNumber
-      // + "] Disk " + diskNum + "/" + disks.size() + ".");
-
+      /*
+       * Determine the number of disks that intersect this point. If the number
+       * is the new max, then save it. If there are no intersections, remove it.
+       */
       for (Iterator<Point2D> iter = solutionPoints.iterator(); iter.hasNext();) {
         Point2D p = iter.next();
         Collection<CaptureDisk> pDisk = new HashSet<CaptureDisk>();
         for (CaptureDisk d : disks) {
-          if (GreedyExperimentTask.checkPointInDisk(p,d)) {
+          if (GreedyExperimentTask.checkPointInDisk(p, d)) {
             pDisk.add(d);
           }
         }
@@ -101,9 +135,9 @@ public class GreedyExperimentTask {
           maxPointDisks = pDisk;
         }
         // No intersections, so remove
-        else if (pDisk.size() == 0) {
-          iter.remove();
-        }
+//        else if (pDisk.size() == 0) {
+//          iter.remove();
+//        }
       }
       Receiver maxReceiver = new Receiver();
       // Remove the highest point and its solution disks
@@ -151,9 +185,10 @@ public class GreedyExperimentTask {
       display.clear();
     }
 
-    Collection<Point2D> solutionPoints = GreedyExperimentTask.generateSolutionPoints(
-        disks, this.config.transmitters);
-    System.out.printf("[%d] Generated %,d solution points.\n",this.config.trialNumber, solutionPoints.size());
+    Collection<Point2D> solutionPoints = GreedyExperimentTask
+        .generateSolutionPoints(disks, this.config.transmitters);
+    System.out.printf("[%d] Generated %,d solution points.\n",
+        this.config.trialNumber, solutionPoints.size());
     if (Main.config.generateImages) {
       display.setTransmitters(this.config.transmitters);
       display.setSolutionPoints(solutionPoints);
@@ -185,34 +220,34 @@ public class GreedyExperimentTask {
 
       int numTasks = Main.config.numThreads;
       int numPoints = solutionPoints.size();
-      int pointsPerTask = (numPoints / numTasks)+1;
-      long numComparisons = disks.size()*(long)numPoints;
+      int pointsPerTask = (numPoints / numTasks) + 1;
+      long numComparisons = disks.size() * (long) numPoints;
 
       Collection<SolutionCheckTask> tasks = new LinkedList<GreedyExperimentTask.SolutionCheckTask>();
       Iterator<Point2D> pointIter = solutionPoints.iterator();
       SolutionCheckTask task = new SolutionCheckTask();
       task.solutionPoints = new LinkedList<Point2D>();
       task.disks = disks;
-      task.parent = this;
+      // task.parent = this;
       tasks.add(task);
-      for(int i=0; pointIter.hasNext(); ++i){
+      for (int i = 0; pointIter.hasNext(); ++i) {
         task.solutionPoints.add(pointIter.next());
         if (i == pointsPerTask) {
           i = 0;
           task = new SolutionCheckTask();
           task.solutionPoints = new LinkedList<Point2D>();
           task.disks = disks;
-          task.parent = this;
+          // task.parent = this;
           tasks.add(task);
         }
       }
       int sumTasks = 0;
-      for(SolutionCheckTask t : tasks){
+      for (SolutionCheckTask t : tasks) {
         System.out.printf("Task (%,d)\n", t.solutionPoints.size());
         sumTasks += t.solutionPoints.size();
       }
-      
-      System.out.printf("Divided %,d/%,d points.\n",sumTasks,numPoints);
+
+      System.out.printf("Divided %,d/%,d points.\n", sumTasks, numPoints);
       long start = System.currentTimeMillis();
       Receiver maxReceiver = null;
       try {
@@ -220,12 +255,13 @@ public class GreedyExperimentTask {
 
         for (Future<Receiver> future : solutions) {
           if (future.isCancelled() || !future.isDone()) {
-            System.err.println("One of the tasks was cancelled! Double-check the code!");
+            System.err
+                .println("One of the tasks was cancelled! Double-check the code!");
             return Boolean.FALSE;
           }
           try {
             Receiver r = future.get();
-            if(r == null){
+            if (r == null) {
               continue;
             }
             if (maxReceiver == null
@@ -242,21 +278,23 @@ public class GreedyExperimentTask {
         e.printStackTrace();
       }
       long duration = System.currentTimeMillis() - start;
-      System.out.printf("Computed %,d comparisons in %,dms.\n",numComparisons, duration);
+      System.out.printf("Computed %,d comparisons in %,dms.\n", numComparisons,
+          duration);
 
       if (maxReceiver == null) {
         break;
       }
 
       solutionPoints.clear();
-      for(SolutionCheckTask t: tasks){
+      for (SolutionCheckTask t : tasks) {
         solutionPoints.addAll(t.solutionPoints);
       }
-      
+
       // Add the newest receiver and remove newly covered points and disks
       receivers.add(maxReceiver);
       solutionPoints.remove(maxReceiver);
-      // Add captures to each transmitter's capture set for collision calculations
+      // Add captures to each transmitter's capture set for collision
+      // calculations
       for (CaptureDisk disk : maxReceiver.coveringDisks) {
         capturedCollisions.get(disk.t1).add(disk.t2);
       }
@@ -269,11 +307,14 @@ public class GreedyExperimentTask {
       float max_contention = 0.0f;
       for (Transmitter txer : this.config.transmitters) {
         // Calculate the number of transmitters in contention
-        // Subtract 1 because this transmitter can never be in contention with itself
-        int num_in_contention = this.config.numTransmitters - 1 - capturedCollisions.get(txer).size();
+        // Subtract 1 because this transmitter can never be in contention with
+        // itself
+        int num_in_contention = this.config.numTransmitters - 1
+            - capturedCollisions.get(txer).size();
         min_contention = Math.min(num_in_contention, min_contention);
         max_contention = Math.max(num_in_contention, max_contention);
-        mean_contention += (float)num_in_contention / this.config.numTransmitters;
+        mean_contention += (float) num_in_contention
+            / this.config.numTransmitters;
       }
       this.stats[m].addContention(mean_contention);
       this.stats[m].addMinContention(min_contention);
@@ -292,7 +333,7 @@ public class GreedyExperimentTask {
             + "1%03d", (m + 1));
         saveImage(display, saveName);
         display.clear();
-        
+
       }
 
       this.stats[m].addCoverage(captureRatio);
@@ -396,7 +437,6 @@ public class GreedyExperimentTask {
 
     display.render(g, img.getWidth(), img.getHeight());
 
-    
     imageFile.mkdirs();
     if (!imageFile.exists()) {
       try {
@@ -414,7 +454,7 @@ public class GreedyExperimentTask {
     }
     g.dispose();
     long duration = System.currentTimeMillis() - start;
-    System.out.printf("Rendering took %,dms.\n",duration);
+    System.out.printf("Rendering took %,dms.\n", duration);
   }
 
 }

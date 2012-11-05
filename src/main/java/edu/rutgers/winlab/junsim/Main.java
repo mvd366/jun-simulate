@@ -40,19 +40,41 @@ import javax.swing.JFrame;
 import com.thoughtworks.xstream.XStream;
 
 /**
+ * Main class to start the receiver placement simulations.
+ * 
  * @author Robert Moore
  * 
  */
 public class Main {
 
+  /**
+   * Configuration file for the application.
+   */
   static Config config = new Config();
 
-  static Random rand = new Random(Main.config.randomSeed);
+  /**
+   * Random number generator.
+   */
+  static Random rand;
 
+  /**
+   * Worker threads for executing parallel tasks.
+   */
   static ExecutorService workers = null;
 
+  /**
+   * Maximum number of worker threads to use.
+   */
   static int maxConcurrentTasks = 1;
 
+  /**
+   * Parses the commandline arguments and starts the simulation.
+   * 
+   * @param args
+   *          configuration file
+   * @throws IOException
+   *           if an exception occurs while reading the configuration file.
+   */
   public static void main(String[] args) throws IOException {
     if (args.length == 1) {
       System.out.println("Using configuration file " + args[0]);
@@ -62,10 +84,10 @@ public class Main {
     } else {
       System.out.println("Using built-in default configuration.");
     }
+    rand = new Random(Main.config.randomSeed);
 
     if (Main.config.numThreads < 1) {
-      Main.config.numThreads = Runtime.getRuntime()
-          .availableProcessors();
+      Main.config.numThreads = Runtime.getRuntime().availableProcessors();
       workers = Executors.newFixedThreadPool(Main.config.numThreads);
       maxConcurrentTasks = Main.config.numThreads;
       System.out.println("Using " + Main.config.numThreads
@@ -77,7 +99,9 @@ public class Main {
           + " threads based on configuration file.");
     }
 
+    // Shutdown handler (for signals from OS)
     Runtime.getRuntime().addShutdownHook(new Thread() {
+      @Override
       public void run() {
         Main.workers.shutdownNow();
       }
@@ -90,6 +114,12 @@ public class Main {
     }
   }
 
+  /**
+   * Perform an unattended set of simulations.
+   * 
+   * @throws IOException
+   *           if an exception is thrown.
+   */
   public static void doSimulation() throws IOException {
     File outputFile = new File(Main.config.outputFileName);
     if (!outputFile.exists()) {
@@ -101,6 +131,7 @@ public class Main {
       return;
     }
 
+    // Output file (CSV) for stats
     PrintWriter fileWriter = new PrintWriter(new FileWriter(outputFile));
     ExperimentStats[] stats = new ExperimentStats[Main.config.numReceivers];
     for (int i = 0; i < stats.length; ++i) {
@@ -112,8 +143,6 @@ public class Main {
     fileWriter
         .println("# Tx, # Rx, Min % Covered, Med. % Covered, Mean % Covered, 95% Coverage, Max % Covered, Min Contention, Med. Contention, Mean Contention, 95% Contention, Max Contention");
 
-//    List<ExperimentTask> tasks = new LinkedList<ExperimentTask>();
-
     // Iterate through some number of trials
     for (int trialNumber = 0; trialNumber < Main.config.numTrials; ++trialNumber) {
 
@@ -122,56 +151,15 @@ public class Main {
       Collection<Transmitter> transmitters = Main
           .generateTransmitterLocations(numTransmitters);
 
-      // System.out.printf("Trial %d/%d: %d tx, %,d disks, %,d solution points.\n",
-      // trialNumber+1, Main.config.numTrials, numTransmitters, disks.size(),
-      // solutionPoints.size());
-
       TaskConfig conf = new TaskConfig();
       conf.trialNumber = trialNumber;
       conf.numTransmitters = numTransmitters;
       conf.transmitters = transmitters;
       conf.numReceivers = Main.config.numReceivers;
-//      HittingExperimentTask task = new HittingExperimentTask(conf, stats, workers);
+
       GreedyExperimentTask task = new GreedyExperimentTask(conf, stats, workers);
       task.perform();
-//      tasks.add(task);
-
-//      // Don't schedule too many at once, eats-up memory!
-//      if (tasks.size() >= Main.maxConcurrentTasks) {
-//        System.out.printf("Executing %d tasks. %d remain.\n", tasks.size(),Main.config.numTrials-trialNumber-1);
-//        try {
-//          // The following call will block utnil ALL tasks are complete
-//          workers.invokeAll(tasks);
-//        } catch (InterruptedException e) {
-//          // TODO Auto-generated catch block
-//          e.printStackTrace();
-//        }
-//        for (ExperimentTask t : tasks) {
-//          // t.config.disks = null;
-//          // t.config.solutionPoints = null;
-//          t.config.transmitters.clear();
-//          t.config.transmitters = null;
-//        }
-//        tasks.clear();
-//      }
     } // End number of trials
-
-//    if (!tasks.isEmpty()) {
-//      try {
-//        // The following call will block utnil ALL tasks are complete
-//        workers.invokeAll(tasks);
-//      } catch (InterruptedException e) {
-//        // TODO Auto-generated catch block
-//        e.printStackTrace();
-//      }
-//      for (ExperimentTask t : tasks) {
-//        // t.config.disks = null;
-//        // t.config.solutionPoints = null;
-//        t.config.transmitters.clear();
-//        t.config.transmitters = null;
-//      }
-//      tasks.clear();
-//    }
 
     workers.shutdown();
     System.out.println("Waiting up to 60 seconds for threadpool to terminate.");
@@ -185,28 +173,32 @@ public class Main {
     // # Tx, # Rx, Min % Covered, Med. %
     // Covered, Mean % Covered, Max % Covered, 95% Coverage
     for (ExperimentStats s : stats) {
-      fileWriter.printf("%d, %d, %.4f, %.4f, %.4f, %.4f, %.4f, %.5f, %.5f, %.5f, %.5f, %.5f\n",
-          s.numberTransmitters, s.numberReceivers, s.getMinCoverage(),
-          s.getMedianCoverage(), s.getMeanCoverage(), s.get95PercentileCoverage(),
-          s.getMaxCoverage(),
-          s.getMinContention(), s.getMedianContention(), s.getMeanContention(),
-          s.get95PercentileContention(), s.getMaxContention()
-          );
+      fileWriter
+          .printf(
+              "%d, %d, %.4f, %.4f, %.4f, %.4f, %.4f, %.5f, %.5f, %.5f, %.5f, %.5f\n",
+              Integer.valueOf(s.numberTransmitters),
+              Integer.valueOf(s.numberReceivers),
+              Float.valueOf(s.getMinCoverage()),
+              Float.valueOf(s.getMedianCoverage()),
+              Float.valueOf(s.getMeanCoverage()),
+              Float.valueOf(s.get95PercentileCoverage()),
+              Float.valueOf(s.getMaxCoverage()),
+              Float.valueOf(s.getMinContention()),
+              Float.valueOf(s.getMedianContention()),
+              Float.valueOf(s.getMeanContention()),
+              Float.valueOf(s.get95PercentileContention()),
+              Float.valueOf(s.getMaxContention()));
     }
     fileWriter.flush();
     fileWriter.close();
   }
 
-  public static float getMaxDistance(float power, float alpha){
-    // -100 = power*-10*alpha*Math.log10(distance/Main.config.waveLengthInMeters);
-    // -100/-10 = alpha*Math.log10(distance/Main.config.waveLengthInMeters);
-    // 10*power/alpha = Math.log10(distance/Main.config.waveLengthInMeters);
-    // (10*power/alpha) + Math.log10(Main.config.waveLengthInMeters) = Math.log10(distance);
-    // Math.pow(10,(10*power/alpha) + Math.log10(Main.config.waveLengthInMeters)) = distance
-    
-    return 0f;
-  }
-  
+  /**
+   * Performs an interactive simulation, prompting for [Enter] after each step.
+   * 
+   * @throws IOException
+   *           if an Exception occurs.
+   */
   public static void doDisplayedResult() throws IOException {
 
     DisplayPanel display = new DisplayPanel();
@@ -320,8 +312,10 @@ public class Main {
     float capturedDisks = totalCaptureDisks - disks.size();
     float captureRatio = (capturedDisks / totalCaptureDisks);
 
-    System.out.printf("%.2f%% capture rate (%d/%d)\n", captureRatio * 100,
-        (int) capturedDisks, totalCaptureDisks);
+    System.out.printf("%.2f%% capture rate (%d/%d)\n",
+        Float.valueOf(captureRatio * 100),
+        Integer.valueOf((int) capturedDisks),
+        Integer.valueOf(totalCaptureDisks));
 
     System.out.println("*********************");
     System.out.println("Press [ENTER] to QUIT");
@@ -379,17 +373,18 @@ public class Main {
     captureDisk.t2 = t2;
     double betaSquared = Math.pow(Main.config.beta, 2);
     double denominator = 1 - betaSquared;
-    
+
     double centerX = (t1.getX() - (betaSquared * t2.getX())) / denominator;
     double centerY = (t1.getY() - (betaSquared * t2.getY())) / denominator;
 
     double euclideanDistance = Math.sqrt(Math.pow(t1.getX() - t2.getX(), 2)
         + Math.pow(t1.getY() - t2.getY(), 2));
-    
+
     /**
-     * TODO: Improve the cutting based on transmit distance. This is overly simplistic.
+     * TODO: Improve the cutting based on transmit distance. This is overly
+     * simplistic.
      */
-    if(euclideanDistance > (2*Main.config.maxRangeMeters)){
+    if (euclideanDistance > (2 * Main.config.maxRangeMeters)) {
       return null;
     }
 

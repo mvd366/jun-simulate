@@ -26,26 +26,39 @@ import java.util.Collection;
 import java.util.LinkedList;
 
 /**
+ * Represents a receiver to place.
+ * 
  * @author Robert Moore
- *
+ * 
  */
-public class Receiver extends Point2D.Float implements Drawable{
-  
+public class Receiver extends Point2D.Float implements Drawable {
+
+  /**
+   * Auto-generated.
+   */
+  private static final long serialVersionUID = -6214708115166326996L;
+  /**
+   * The set of covering disks that overlap this receiver's position.
+   */
   Collection<CaptureDisk> coveringDisks = new LinkedList<CaptureDisk>();
-  
-  public void draw(Graphics2D g, float scaleX, float scaleY){
+
+  @Override
+  public void draw(Graphics2D g, float scaleX, float scaleY) {
     AffineTransform origTransform = g.getTransform();
     Color origColor = g.getColor();
-//    g.translate((int)this.getX(),(int)this.getY());
-   
+    // g.translate((int)this.getX(),(int)this.getY());
+
     g.setColor(Color.YELLOW);
-    for(CaptureDisk d : this.coveringDisks){
-      Line2D line = new Line2D.Double(d.disk.getCenterX()*scaleX, d.disk.getCenterY()*scaleY, this.getX()*scaleX, this.getY()*scaleY);
+    for (CaptureDisk d : this.coveringDisks) {
+      Line2D line = new Line2D.Double(d.disk.getCenterX() * scaleX,
+          d.disk.getCenterY() * scaleY, this.getX() * scaleX, this.getY()
+              * scaleY);
       g.draw(line);
     }
-    
+
     g.setColor(origColor);
-    g.drawString("R"+this.coveringDisks.size(), (int)(this.getX()*scaleX),(int)(this.getY()*scaleY));
+    g.drawString("R" + this.coveringDisks.size(), (int) (this.getX() * scaleX),
+        (int) (this.getY() * scaleY));
     g.setTransform(origTransform);
   }
 }
