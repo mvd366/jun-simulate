@@ -30,6 +30,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.TreeMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
@@ -122,10 +123,8 @@ public class AnnealingExperimentTask {
   }
 
   public Boolean perform() {
-    HashMap<Point2D, HashSet<Point2D>> adjacencies =
-      new HashMap<Point2D, HashSet<Point2D>>();
-    HashMap<Point2D, HashSet<CaptureDisk>> pToD =
-      new HashMap<Point2D, HashSet<CaptureDisk>>();
+    TreeMap<Point2D, HashSet<Point2D>> adjacencies =
+      new TreeMap<Point2D, HashSet<Point2D>>(new PointComparator());
 
     DisplayPanel display = new DisplayPanel();
 
@@ -158,24 +157,7 @@ public class AnnealingExperimentTask {
     Collection<Point2D> solutionPoints = AnnealingExperimentTask.generateSolutionPoints(
         disks, this.config.transmitters, adjacencies);
     // Adjacency list is now populated from possible points
-    // This occurs in the genreateSolutionPoints function
-
-    //Populate solution point to disk record
-    for (Point2D p : solutionPoints) {
-      pToD.put(p, new HashSet<CaptureDisk>());
-      for (CaptureDisk d : disks) {
-        double x = d.disk.getCenterX();
-        double y = d.disk.getCenterY();
-        float radius = d.disk.radius;
-        //Point in disk? Add to map
-        if (p.getX() >= radius-x &&
-            p.getX() < radius+x &&
-            p.getY() >= radius-y &&
-            p.getY() < radius+y) {
-          pToD.get(p).add(d);
-        }
-      }
-    }
+    // This occurs in the generateSolutionPoints function
 
     System.out.printf("[%d] Generated %,d solution points.\n",this.config.trialNumber, solutionPoints.size());
     if (Main.config.generateImages) {
@@ -208,8 +190,7 @@ public class AnnealingExperimentTask {
     // Select random set of receivers as the starting set for annealing
     // TODO Vector instead of linked list?
     Collection<Point2D> state = new LinkedList<Point2D>();
-    //TODO FIXME Use random points, this doesn't work (solutionPoints is a hash)
-    //state.add(solutionPoints.get(i*solutionPoints.size()/this.config.numReceivers));
+    //TODO Use random points rather than just arbitrary ones in the map
     int cur = 0;
     int end = solutionPoints.size() / this.config.numReceivers;
     for (Point2D p: solutionPoints) {
@@ -220,13 +201,14 @@ public class AnnealingExperimentTask {
     }
     // Initialize energy and best state
     float energy = AnnealingExperimentTask.getMeanContention(
-        AnnealingExperimentTask.getCoverage(state, pToD, this.config.transmitters),
+        AnnealingExperimentTask.getCoverage(state, disks, this.config.transmitters),
         this.config.transmitters, this.config.numTransmitters);
     Collection<Point2D> bestState = state;
     float bestEnergy = energy;
     float temperature = 1.0f;
-    float delta = 0.01f; // 1000 iterations
-    while (temperature <= 11.0) {
+    float delta = 0.01f; // 500 iterations
+    while (temperature <= 6.0) {
+      System.out.println("On temperature "+temperature);
       for (Point2D p : state) {
         Point2D possiblePoint = AnnealingExperimentTask.getRandomNeighbor(p, adjacencies);
         Collection<Point2D> possibleState = new LinkedList<Point2D>();
@@ -243,7 +225,7 @@ public class AnnealingExperimentTask {
           }
         }
         float possibleEnergy = AnnealingExperimentTask.getMeanContention(
-            AnnealingExperimentTask.getCoverage(possibleState, pToD, this.config.transmitters),
+            AnnealingExperimentTask.getCoverage(possibleState, disks, this.config.transmitters),
             this.config.transmitters, this.config.numTransmitters);
         // transitionProb may be > 1, but the result is the same
         //float transitionProb = (float)Math.pow(0.5f + energy / (energy+possibleEnergy), temperature);
@@ -264,7 +246,7 @@ public class AnnealingExperimentTask {
     // Log statistics for best state
     // TODO FIXME Log other statistics besides just contention
     this.stats[this.config.numReceivers-1].addContention(AnnealingExperimentTask.getMeanContention(
-          AnnealingExperimentTask.getCoverage(bestState, pToD, this.config.transmitters),
+          AnnealingExperimentTask.getCoverage(bestState, disks, this.config.transmitters),
           this.config.transmitters, this.config.numTransmitters));
 
     // Keep going while there are either solution points or capture disks
@@ -276,6 +258,7 @@ public class AnnealingExperimentTask {
     for (Transmitter txer : this.config.transmitters) {
       capturedCollisions.put(txer, new HashSet<Transmitter>());
     }
+    adjacencies.clear();
 
     disks.clear();
     solutionPoints.clear();
@@ -313,7 +296,7 @@ public class AnnealingExperimentTask {
   }
 
   private static Point2D getRandomNeighbor(Point2D p,
-      HashMap<Point2D, HashSet<Point2D>> adjacencies) {
+      TreeMap<Point2D, HashSet<Point2D>> adjacencies) {
     double r = Math.random();
     int cur = 0;
     double end = r * adjacencies.get(p).size();
@@ -333,10 +316,14 @@ public class AnnealingExperimentTask {
    */
   private static Collection<Point2D> generateSolutionPoints(
       Collection<CaptureDisk> disks, Collection<Transmitter> transmitters,
-      HashMap<Point2D, HashSet<Point2D>> adjacencies) {
+      TreeMap<Point2D, HashSet<Point2D>> adjacencies) {
+    System.out.println("Building solution points and adjacencies");
     // Add center points of all capture disks as solutions
     Collection<Point2D> solutionPoints = new HashSet<Point2D>();
+    int disk_num = 0;
     for (CaptureDisk d1 : disks) {
+      disk_num += 1;
+      System.out.println("On disk number "+disk_num+" out of "+disks.size());
       // Build an adjacency list disk by disk
       Collection<Point2D> pointsInDisk = new LinkedList<Point2D>();
       // Check if the center point can be added
@@ -385,8 +372,6 @@ public class AnnealingExperimentTask {
         }
       }
     }
-
-
     return solutionPoints;
   }
 
@@ -394,18 +379,28 @@ public class AnnealingExperimentTask {
    * Get the collisions covered for each transmitter
    */
   private static HashMap<Transmitter, HashSet<Transmitter>> getCoverage(
-      Collection<Point2D> state, HashMap<Point2D, HashSet<CaptureDisk>> pToD,
-      Collection<Transmitter> transmitters) {
+      Collection<Point2D> state,
+      Collection<CaptureDisk> disks, Collection<Transmitter> transmitters) {
     HashMap<Transmitter, HashSet<Transmitter>> coverage = new HashMap<Transmitter, HashSet<Transmitter>>();
     // Initialize each set to empty
     for (Transmitter txer : transmitters) {
       coverage.put(txer, new HashSet<Transmitter>());
     }
 
-    //Fill in coverage information
-    for (Point2D p : state) {
-      for (CaptureDisk disk : pToD.get(p)) {
-        coverage.get(disk.t1).add(disk.t2);
+    // Fill in coverage information. Put the capture disks in the outer
+    // loop since that map will go out of memory
+    for (CaptureDisk d : disks) {
+      for (Point2D p : state) {
+        double x = d.disk.getCenterX();
+        double y = d.disk.getCenterY();
+        float radius = d.disk.radius;
+        //Point in disk? Add to map
+        if (p.getX() >= x - radius &&
+            p.getX() < x + radius &&
+            p.getY() >= y - radius &&
+            p.getY() < y + radius) {
+          coverage.get(d.t1).add(d.t2);
+        }
       }
     }
     return coverage;
