@@ -7,7 +7,7 @@
 		<param name="Target" value="System.out" />
     <param name="Threshold" value="INFO" />
 		<layout class="org.apache.log4j.PatternLayout">
-			<param name="ConversionPattern" value="[%d] %-5p %t/%c{1} - %m%n" />
+      <param name="ConversionPattern" value="[%d] %t/%-5p %t/%c{1} - %m%n" />
 		</layout>
 	</appender>
 
@@ -18,7 +18,7 @@
 		<!-- Keep at most 100MB of logs -->
 		<param name="MaxBackupIndex" value="10" />
 		<layout class="org.apache.log4j.PatternLayout">
-			<param name="ConversionPattern" value="[%d] %-5p %t/%c{1} - %m%n" />
+      <param name="ConversionPattern" value="[%d] %t/%-5p %t/%c{1} - %m%n" />
 		</layout>
 	</appender>
 	
@@ -30,7 +30,7 @@
 		<param name="Threshold" value="INFO" />
 		<layout class="org.apache.log4j.PatternLayout">
 			<!-- <param name="ConversionPattern" value="[%d] %-5p %t/%c{1} - %m%n" /> -->
-			<param name="ConversionPattern" value="[%d{HH:mm:ss.SSS}] - %p - %t/%c{1} - %m%n"/>
+      <param name="ConversionPattern" value="[%d{HH:mm:ss.SSS}] - %t/%p - %t/%c{1} - %m%n"/>
 		</layout>
 	</appender>
 	

@@ -35,6 +35,9 @@ import java.util.concurrent.Future;
 
 import javax.imageio.ImageIO;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * A basic experimental simulation task that generates receiver positions based
  * on intersections of capture disks and tests each one to find the maximal
@@ -44,6 +47,8 @@ import javax.imageio.ImageIO;
  * 
  */
 public class BasicExperiment {
+  
+  private static final Logger log = LoggerFactory.getLogger(BasicExperiment.class);
 
   /**
    * Configuration for this task.
@@ -94,6 +99,8 @@ public class BasicExperiment {
    */
   private static final class SolutionCheckTask implements Callable<Receiver> {
 
+    private static final Logger log = LoggerFactory.getLogger(SolutionCheckTask.class);
+    
     /**
      * Set of points this task should check.
      */
@@ -113,43 +120,45 @@ public class BasicExperiment {
     @Override
     public Receiver call() {
 
+        
+      
       Point2D maxPoint = null;
       Collection<CaptureDisk> maxPointDisks = null;
       int maxDisks = 0;
-      int totalDisks = this.disks.size();
-
+      final int totalDisks = this.disks.size();
+      log.info(String.format("Computing %,d points for %,d disks.",this.solutionPoints.size(),totalDisks));
       /*
        * Determine the number of disks that intersect this point. If the number
        * is the new max, then save it. If there are no intersections, remove it.
        */
-      points: for (Iterator<Point2D> iter = solutionPoints.iterator(); iter.hasNext();) {
-        Point2D p = iter.next();
-        Collection<CaptureDisk> pDisk = new HashSet<CaptureDisk>();
-        int numIntersect = 0;
-        int diskIndex = 0;
+      points: for (final Iterator<Point2D> iter = this.solutionPoints.iterator(); iter.hasNext();) {
+        final Point2D p = iter.next();
+        final Collection<CaptureDisk> pDisk = new HashSet<CaptureDisk>();
+//        int numIntersect = 0;
+//        int diskIndex = 0;
         
         
-        for (CaptureDisk d : disks) {
+        for (final CaptureDisk d : this.disks) {
           if (BasicExperiment.checkPointInDisk(p, d)) {
             pDisk.add(d);
-            ++numIntersect;
+//            ++numIntersect;
           }
-          ++diskIndex;
-          if((numIntersect + (totalDisks -diskIndex)) < maxDisks){
-            continue points;
-          }
+//          ++diskIndex;
+//          if((numIntersect + (totalDisks -diskIndex)) < maxDisks){
+//            continue points;
+//          }
         }
         if (pDisk.size() > maxDisks) {
           maxDisks = pDisk.size();
           maxPoint = p;
           maxPointDisks = pDisk;
         }
-        // No intersections, so remove
-//        else if (pDisk.size() == 0) {
-//          iter.remove();
-//        }
+//      Remove points that have no overlaps
+        else if(pDisk.isEmpty()){
+          iter.remove();
+        }
       }
-      Receiver maxReceiver = new Receiver();
+      final Receiver maxReceiver = new Receiver();
       // Remove the highest point and its solution disks
       if (maxPoint != null) {
 
@@ -167,7 +176,7 @@ public class BasicExperiment {
   }
 
   public Boolean perform() {
-    DisplayPanel display = new DisplayPanel();
+    final DisplayPanel display = new DisplayPanel();
 
     if (Main.config.generateImages) {
 
@@ -176,17 +185,17 @@ public class BasicExperiment {
       display.clear();
     }
 
-    Collection<CaptureDisk> disks = new HashSet<CaptureDisk>();
+    final Collection<CaptureDisk> disks = new HashSet<CaptureDisk>();
     // Compute all possible capture disks
-    for (Transmitter t1 : this.config.transmitters) {
-      for (Transmitter t2 : this.config.transmitters) {
-        CaptureDisk someDisk = Main.generateCaptureDisk(t1, t2);
+    for (final Transmitter t1 : this.config.transmitters) {
+      for (final Transmitter t2 : this.config.transmitters) {
+        final CaptureDisk someDisk = Main.generateCaptureDisk(t1, t2);
         if (someDisk != null) {
           disks.add(someDisk);
         }
       }
     }
-    System.out.println("[" + this.config.trialNumber + "] Generated "
+    log.info("[" + this.config.trialNumber + "] Generated "
         + disks.size() + " disks.");
     if (Main.config.generateImages) {
       display.setTransmitters(this.config.transmitters);
@@ -197,8 +206,8 @@ public class BasicExperiment {
 
     Collection<Point2D> solutionPoints = BasicExperiment
         .generateSolutionPoints(disks, this.config.transmitters);
-    System.out.printf("[%d] Generated %,d solution points.\n",
-        this.config.trialNumber, solutionPoints.size());
+    log.info(String.format("[%d] Generated %,d solution points.\n",
+        this.config.trialNumber, solutionPoints.size()));
     if (Main.config.generateImages) {
       display.setTransmitters(this.config.transmitters);
       display.setSolutionPoints(solutionPoints);
@@ -207,34 +216,34 @@ public class BasicExperiment {
       display.clear();
     }
 
-    int totalCaptureDisks = disks.size();
-    int totalSolutionPoints = solutionPoints.size();
+    final int totalCaptureDisks = disks.size();
+    final int totalSolutionPoints = solutionPoints.size();
     int m = 0;
 
     // Keep going while there are either solution points or capture disks
-    Collection<Receiver> receivers = new LinkedList<Receiver>();
+    final Collection<Receiver> receivers = new LinkedList<Receiver>();
     // Keep track of which collisions are captured so that packet loss
     // probabilities can be quickly calculated
-    ConcurrentHashMap<Transmitter, HashSet<Transmitter>> capturedCollisions = new ConcurrentHashMap<Transmitter, HashSet<Transmitter>>();
+    final ConcurrentHashMap<Transmitter, HashSet<Transmitter>> capturedCollisions = new ConcurrentHashMap<Transmitter, HashSet<Transmitter>>();
     // Add an empty set for each transmitter
-    for (Transmitter txer : this.config.transmitters) {
+    for (final Transmitter txer : this.config.transmitters) {
       capturedCollisions.put(txer, new HashSet<Transmitter>());
     }
 
     while (m < this.config.numReceivers && !solutionPoints.isEmpty()
         && !disks.isEmpty()) {
-      System.out.println("[" + this.config.trialNumber
+      log.info("[" + this.config.trialNumber
           + "] Calculating position for receiver " + (m + 1) + ".");
       // HashMap<Point2D, Collection<CaptureDisk>> bipartiteGraph = new
       // HashMap<Point2D, Collection<CaptureDisk>>();
 
-      int numTasks = Main.config.numThreads;
-      int numPoints = solutionPoints.size();
-      int pointsPerTask = (numPoints / numTasks) + 1;
-      long numComparisons = disks.size() * (long) numPoints;
+      final int numTasks = Main.config.numThreads;
+      final int numPoints = solutionPoints.size();
+      final int pointsPerTask = (numPoints / numTasks) + 1;
+      final long numComparisons = disks.size() * (long) numPoints;
 
-      Collection<SolutionCheckTask> tasks = new LinkedList<BasicExperiment.SolutionCheckTask>();
-      Iterator<Point2D> pointIter = solutionPoints.iterator();
+      final Collection<SolutionCheckTask> tasks = new LinkedList<BasicExperiment.SolutionCheckTask>();
+      final Iterator<Point2D> pointIter = solutionPoints.iterator();
       SolutionCheckTask task = new SolutionCheckTask();
       task.solutionPoints = new LinkedList<Point2D>();
       task.disks = disks;
@@ -252,25 +261,24 @@ public class BasicExperiment {
         }
       }
       int sumTasks = 0;
-      for (SolutionCheckTask t : tasks) {
-        System.out.printf("Task (%,d)\n", t.solutionPoints.size());
+      for (final SolutionCheckTask t : tasks) {
+        log.info(String.format("Task (%,d)\n", t.solutionPoints.size()));
         sumTasks += t.solutionPoints.size();
       }
 
-      System.out.printf("Divided %,d/%,d points.\n", sumTasks, numPoints);
-      long start = System.currentTimeMillis();
+      log.info(String.format("Divided %,d/%,d points.\n", sumTasks, numPoints));
+      final long start = System.currentTimeMillis();
       Receiver maxReceiver = null;
       try {
-        List<Future<Receiver>> solutions = workers.invokeAll(tasks);
+        final List<Future<Receiver>> solutions = this.workers.invokeAll(tasks);
 
-        for (Future<Receiver> future : solutions) {
+        for (final Future<Receiver> future : solutions) {
           if (future.isCancelled() || !future.isDone()) {
-            System.err
-                .println("One of the tasks was cancelled! Double-check the code!");
+           log.error("One of the tasks was cancelled! Double-check the code!");
             return Boolean.FALSE;
           }
           try {
-            Receiver r = future.get();
+            final Receiver r = future.get();
             if (r == null) {
               continue;
             }
@@ -278,25 +286,25 @@ public class BasicExperiment {
                 || r.coveringDisks.size() > maxReceiver.coveringDisks.size()) {
               maxReceiver = r;
             }
-          } catch (ExecutionException e) {
+          } catch (final ExecutionException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
           }
         }
 
-      } catch (InterruptedException e) {
+      } catch (final InterruptedException e) {
         e.printStackTrace();
       }
-      long duration = System.currentTimeMillis() - start;
-      System.out.printf("Computed %,d comparisons in %,dms.\n", numComparisons,
-          duration);
+      final long duration = System.currentTimeMillis() - start;
+      log.info(String.format("Computed %,d comparisons in %,dms.\n", numComparisons,
+          duration));
 
       if (maxReceiver == null) {
         break;
       }
 
       solutionPoints.clear();
-      for (SolutionCheckTask t : tasks) {
+      for (final SolutionCheckTask t : tasks) {
         solutionPoints.addAll(t.solutionPoints);
       }
 
@@ -305,7 +313,7 @@ public class BasicExperiment {
       solutionPoints.remove(maxReceiver);
       // Add captures to each transmitter's capture set for collision
       // calculations
-      for (CaptureDisk disk : maxReceiver.coveringDisks) {
+      for (final CaptureDisk disk : maxReceiver.coveringDisks) {
         capturedCollisions.get(disk.t1).add(disk.t2);
       }
       disks.removeAll(maxReceiver.coveringDisks);
@@ -315,11 +323,11 @@ public class BasicExperiment {
       float mean_contention = 0.0f;
       float min_contention = this.config.numTransmitters;
       float max_contention = 0.0f;
-      for (Transmitter txer : this.config.transmitters) {
+      for (final Transmitter txer : this.config.transmitters) {
         // Calculate the number of transmitters in contention
         // Subtract 1 because this transmitter can never be in contention with
         // itself
-        int num_in_contention = this.config.numTransmitters - 1
+        final int num_in_contention = this.config.numTransmitters - 1
             - capturedCollisions.get(txer).size();
         min_contention = Math.min(num_in_contention, min_contention);
         max_contention = Math.max(num_in_contention, max_contention);
@@ -330,8 +338,8 @@ public class BasicExperiment {
       this.stats[m].addMinContention(min_contention);
       this.stats[m].addMaxContention(max_contention);
 
-      float capturedDisks = totalCaptureDisks - disks.size();
-      float captureRatio = (capturedDisks / totalCaptureDisks);
+      final float capturedDisks = totalCaptureDisks - disks.size();
+      final float captureRatio = (capturedDisks / totalCaptureDisks);
       // Debugging stuff
       if (Main.config.generateImages) {
         display.setTransmitters(this.config.transmitters);
@@ -339,7 +347,7 @@ public class BasicExperiment {
         display.setCaptureDisks(disks);
         display.setReceiverPoints(receivers);
 
-        String saveName = String.format(this.saveDirectory + File.separator
+        final String saveName = String.format(this.saveDirectory + File.separator
             + "1%03d", (m + 1));
         saveImage(display, saveName);
         display.clear();
@@ -353,7 +361,7 @@ public class BasicExperiment {
         solutionPoints.clear();
         solutionPoints = BasicExperiment.generateSolutionPoints(disks,
             this.config.transmitters);
-        System.out.println("[" + this.config.trialNumber + "] Regenerated "
+        log.info("[" + this.config.trialNumber + "] Regenerated "
             + solutionPoints.size() + " solution points.");
       }
 
@@ -367,10 +375,10 @@ public class BasicExperiment {
     return Boolean.TRUE;
   }
 
-  static boolean checkPointInDisk(Point2D p, CaptureDisk d) {
-    double dist1 = Math.sqrt(Math.pow(p.getX() - d.t1.getX(), 2)
+  static boolean checkPointInDisk(final Point2D p, final CaptureDisk d) {
+    final double dist1 = Math.sqrt(Math.pow(p.getX() - d.t1.getX(), 2)
         + Math.pow(p.getY() - d.t1.getY(), 2));
-    double dist2 = Math.sqrt(Math.pow(p.getX() - d.t2.getX(), 2)
+    final double dist2 = Math.sqrt(Math.pow(p.getX() - d.t2.getX(), 2)
         + Math.pow(p.getY() - d.t2.getY(), 2));
     // This point is too far away from the transmitters for this disk
     if (dist1 > Main.config.maxRangeMeters
@@ -382,17 +390,17 @@ public class BasicExperiment {
   }
 
   private static Collection<Point2D> generateSolutionPoints(
-      Collection<CaptureDisk> disks, Collection<Transmitter> transmitters) {
+      final Collection<CaptureDisk> disks, final Collection<Transmitter> transmitters) {
     // Add center points of all capture disks as solutions
-    Collection<Point2D> solutionPoints = new HashSet<Point2D>();
-    for (CaptureDisk disk : disks) {
+    final Collection<Point2D> solutionPoints = new HashSet<Point2D>();
+    for (final CaptureDisk disk : disks) {
       if (disk.disk.getCenterX() < 0
           || disk.disk.getCenterX() >= Main.config.universeWidth
           || disk.disk.getCenterY() < 0
           || disk.disk.getCenterY() > Main.config.universeHeight) {
         continue;
       }
-      Point2D.Float center = new Point2D.Float((float) disk.disk.getCenterX(),
+      final Point2D.Float center = new Point2D.Float((float) disk.disk.getCenterX(),
           (float) disk.disk.getCenterY());
       if (BasicExperiment.checkPointInRange(center, transmitters)) {
         solutionPoints.add(center);
@@ -400,11 +408,11 @@ public class BasicExperiment {
     }
 
     // Add intersection of all capture disks as solutions
-    for (CaptureDisk d1 : disks) {
-      for (CaptureDisk d2 : disks) {
-        Collection<Point2D> intersections = Main.generateIntersections(d1, d2);
+    for (final CaptureDisk d1 : disks) {
+      for (final CaptureDisk d2 : disks) {
+        final Collection<Point2D> intersections = Main.generateIntersections(d1, d2);
         if (intersections != null && !intersections.isEmpty()) {
-          for (Point2D p : intersections) {
+          for (final Point2D p : intersections) {
             if (BasicExperiment.checkPointInRange(p, transmitters)) {
               solutionPoints.add(p);
             }
@@ -425,10 +433,10 @@ public class BasicExperiment {
    * @return {@code true} if the point is within the transmit radius of at
    *         leaset one transmitter.
    */
-  private static boolean checkPointInRange(Point2D p,
-      Collection<Transmitter> transmitters) {
-    for (Transmitter t : transmitters) {
-      double d = Math.sqrt(Math.pow(p.getX() - t.getX(), 2)
+  private static boolean checkPointInRange(final Point2D p,
+      final Collection<Transmitter> transmitters) {
+    for (final Transmitter t : transmitters) {
+      final double d = Math.sqrt(Math.pow(p.getX() - t.getX(), 2)
           + Math.pow(p.getY() - t.getY(), 2));
       if (d < Main.config.maxRangeMeters) {
         return true;
@@ -437,13 +445,13 @@ public class BasicExperiment {
     return false;
   }
 
-  private void saveImage(DisplayPanel display, String fileName) {
-    long start = System.currentTimeMillis();
-    File imageFile = new File(fileName + ".png");
+  private void saveImage(final DisplayPanel display, final String fileName) {
+    final long start = System.currentTimeMillis();
+    final File imageFile = new File(fileName + ".png");
     System.out.printf("Rendering \"%s\".\n", imageFile);
-    BufferedImage img = new BufferedImage(Main.config.renderWidth,
+    final BufferedImage img = new BufferedImage(Main.config.renderWidth,
         Main.config.renderHeight, BufferedImage.TYPE_INT_RGB);
-    Graphics g = img.createGraphics();
+    final Graphics g = img.createGraphics();
 
     display.render(g, img.getWidth(), img.getHeight());
 
@@ -451,7 +459,7 @@ public class BasicExperiment {
     if (!imageFile.exists()) {
       try {
         imageFile.createNewFile();
-      } catch (IOException e) {
+      } catch (final IOException e) {
         // TODO Auto-generated catch block
         e.printStackTrace();
       }
@@ -459,11 +467,11 @@ public class BasicExperiment {
     try {
       ImageIO.write(img, "png", imageFile);
       System.out.println("Saved " + imageFile.getName());
-    } catch (Exception e) {
+    } catch (final Exception e) {
       e.printStackTrace();
     }
     g.dispose();
-    long duration = System.currentTimeMillis() - start;
+    final long duration = System.currentTimeMillis() - start;
     System.out.printf("Rendering took %,dms.\n", duration);
   }
 
