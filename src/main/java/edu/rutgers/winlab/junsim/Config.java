@@ -99,6 +99,12 @@ public class Config {
    * Maximum range (in meters) that a transmitter may be heard by a receiver.
    */
   float maxRangeMeters = 100f;
+  
+  /**
+   * Type of experiment to run.
+   * "basic", "binned"
+   */
+  String experimentType = "basic";
 
   public int getNumTransmitters() {
     return numTransmitters;

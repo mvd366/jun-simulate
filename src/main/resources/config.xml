@@ -39,5 +39,10 @@
   <generateImages>true</generateImages>
   <!-- How far a transmitter's packet can be received by a receiver. -->
   <maxRangeMeters>40</maxRangeMeters>
+  <!-- The type of experiment to run. Options are:
+       * "basic" - standard algorithm, known to produce correct results.
+       * "binned" - faster algorithm uses binning of scores to reduce 
+            computation. Under development and may have bugs. -->
+  <experimentType>binned</experimentType>
 </edu.rutgers.winlab.junsim.Config>
 

@@ -157,7 +157,12 @@ public class Main {
       conf.transmitters = transmitters;
       conf.numReceivers = Main.config.numReceivers;
 
-      BasicExperiment task = new BasicExperiment(conf, stats, workers);
+      Experiment task; 
+      if("binned".equalsIgnoreCase(config.experimentType)){
+        task = new BinnedBasicExperiment(conf, stats, workers);
+      }else {
+        task = new BasicExperiment(conf, stats, workers); 
+      } 
       task.perform();
     } // End number of trials
 
