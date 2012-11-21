@@ -73,6 +73,12 @@ public class Circle implements Drawable {
   }
 
   public boolean contains(Point2D p) {
+    // Quick bounding-box check
+    if(this.center.x-this.radius > p.getX() || this.center.x+this.radius < p.getX() ||
+        this.center.y-this.radius > p.getY() || this.center.y+this.radius < p.getY()){
+      return false;
+    }
+    
     float dist = (float) Math.sqrt(Math.pow(p.getX() - this.center.getX(), 2)
         + Math.pow(p.getY() - this.center.getY(), 2));
     return this.radius >= dist;
