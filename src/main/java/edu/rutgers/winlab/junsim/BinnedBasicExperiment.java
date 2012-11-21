@@ -364,7 +364,7 @@ public class BinnedBasicExperiment implements Experiment {
       // Debugging stuff
       if (Main.config.generateImages) {
         display.setTransmitters(this.config.transmitters);
-        display.setSolutionPoints(thePoints);
+        display.setSolutionPoints(this.binner.getMaxBin());
         display.setCaptureDisks(disks);
         display.setReceiverPoints(receivers);
 
