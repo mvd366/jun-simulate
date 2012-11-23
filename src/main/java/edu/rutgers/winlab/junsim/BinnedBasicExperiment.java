@@ -68,8 +68,12 @@ public class BinnedBasicExperiment implements Experiment {
    * Pool of worker threads to utilize.
    */
   private final ExecutorService workers;
-  
+
   private Binner binner;
+  
+  private int numBins = 100;
+  
+  private int minRebinValue = 2;
 
   /**
    * Creates a new experiment task with the specific configuration, global stats
@@ -94,7 +98,6 @@ public class BinnedBasicExperiment implements Experiment {
         Integer.valueOf(this.config.numTransmitters),
         Integer.valueOf(this.config.trialNumber));
 
-  
   }
 
   /**
@@ -156,7 +159,7 @@ public class BinnedBasicExperiment implements Experiment {
         int size = pDisk.size();
 
         if (size > 0) {
-          int bindex = this.binner.put(p,size);
+          int bindex = this.binner.put(p, size);
           // Add to bin
           if (size > maxDisks && bindex >= this.desiredBin) {
             maxDisks = size;
@@ -180,8 +183,6 @@ public class BinnedBasicExperiment implements Experiment {
       return maxReceiver;
     }
   }
-
-  
 
   public Boolean perform() {
     final DisplayPanel display = new DisplayPanel();
@@ -237,17 +238,17 @@ public class BinnedBasicExperiment implements Experiment {
     for (final Transmitter txer : this.config.transmitters) {
       capturedCollisions.put(txer, new HashSet<Transmitter>());
     }
-    
-    this.binner = new Binner(10, 1, disks.size()/3);
-    this.binner.set(startingPoints,1);
-    
+
+    this.binner = new Binner(this.numBins, 1, disks.size() / 3);
+    this.binner.set(startingPoints, 1);
+
     int highestBindex = 0;
     while (m < this.config.numReceivers && !disks.isEmpty()) {
-      
+
       this.binner.printBins();
       log.info("[" + this.config.trialNumber
           + "] Calculating position for receiver " + (m + 1) + ".");
-      
+
       Set<Point2D> thePoints = this.binner.getMaxBin();
 
       if (thePoints == null) {
@@ -285,7 +286,7 @@ public class BinnedBasicExperiment implements Experiment {
       }
       int sumTasks = 0;
       for (final SolutionCheckTask t : tasks) {
-        log.info(String.format("Task (%,d)\n", t.solutionPoints.size()));
+        log.info(String.format("Task (%,d)", t.solutionPoints.size()));
         sumTasks += t.solutionPoints.size();
       }
 
@@ -327,11 +328,16 @@ public class BinnedBasicExperiment implements Experiment {
         if (highestBindex == 0) {
           break;
         }
-        --highestBindex;
+        highestBindex = this.binner.getMaxBindex();
         continue;
       }
-      
-      
+
+      if (highestBindex == 0) {
+        int max = maxReceiver.coveringDisks.size();
+        if (max > this.minRebinValue) {
+          this.binner.rebin(1, maxReceiver.coveringDisks.size() / 2);
+        }
+      }
 
       // Add the newest receiver and remove newly covered points and disks
       receivers.add(maxReceiver);
@@ -392,8 +398,6 @@ public class BinnedBasicExperiment implements Experiment {
     Runtime.getRuntime().gc();
     return Boolean.TRUE;
   }
-  
-  
 
   static boolean checkPointInDisk(final Point2D p, final CaptureDisk d) {
     final double dist1 = Math.sqrt(Math.pow(p.getX() - d.t1.getX(), 2)

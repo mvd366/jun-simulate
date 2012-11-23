@@ -42,6 +42,9 @@ public class Binner {
     this.binMins = new int[numBins];
     this.binMins[0] = min;
     int step = (int)Math.ceil((max*1f - min)/numBins);
+    if(step < 1){
+      step = 1;
+    }
     
     int binStart = step;
     for(int i = 1; i < this.binMins.length; ++i, binStart+=step){
@@ -52,6 +55,17 @@ public class Binner {
     for (int i = 0; i < this.bins.length; ++i) {
       this.bins[i] = Collections
           .newSetFromMap(new ConcurrentHashMap<Point2D, Boolean>());
+    }
+  }
+  
+  public void rebin(final int min, final int max){
+    int step = (int)Math.ceil((max*1f - min)/this.bins.length);
+    if(step < 1){
+      step = 1;
+    }
+    int binStart = step;
+    for(int i = 1; i < this.binMins.length; ++i, binStart+=step){
+      this.binMins[i] = binStart;
     }
   }
 
@@ -73,6 +87,16 @@ public class Binner {
       }
     }
     return null;
+  }
+  
+  public int getMaxBindex(){
+    int bindex = this.bins.length-1;
+    for(; bindex > 0; --bindex){
+      if(!this.bins[bindex].isEmpty()){
+        break;
+      }
+    }
+    return bindex;
   }
 
   /**
