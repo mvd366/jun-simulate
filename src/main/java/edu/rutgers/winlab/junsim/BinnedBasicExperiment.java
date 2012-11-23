@@ -157,7 +157,7 @@ public class BinnedBasicExperiment implements Experiment {
 
         if (size > 0) {
           int bindex = this.binner.put(p,size);
-          // Add to bind
+          // Add to bin
           if (size > maxDisks && bindex >= this.desiredBin) {
             maxDisks = size;
             maxPoint = p;
@@ -241,13 +241,13 @@ public class BinnedBasicExperiment implements Experiment {
     this.binner = new Binner(10, 1, disks.size()/3);
     this.binner.set(startingPoints,1);
     
-
+    int highestBindex = 0;
     while (m < this.config.numReceivers && !disks.isEmpty()) {
       
       this.binner.printBins();
       log.info("[" + this.config.trialNumber
           + "] Calculating position for receiver " + (m + 1) + ".");
-      int highestBindex = 0;
+      
       Set<Point2D> thePoints = this.binner.getMaxBin();
 
       if (thePoints == null) {
@@ -307,6 +307,7 @@ public class BinnedBasicExperiment implements Experiment {
             }
             if (maxReceiver == null
                 || r.coveringDisks.size() > maxReceiver.coveringDisks.size()) {
+              highestBindex = this.binner.getBindex(r.coveringDisks.size());
               maxReceiver = r;
             }
           } catch (final ExecutionException e) {
@@ -326,8 +327,11 @@ public class BinnedBasicExperiment implements Experiment {
         if (highestBindex == 0) {
           break;
         }
+        --highestBindex;
         continue;
       }
+      
+      
 
       // Add the newest receiver and remove newly covered points and disks
       receivers.add(maxReceiver);
