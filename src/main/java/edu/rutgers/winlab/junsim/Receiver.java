@@ -52,22 +52,22 @@ public class Receiver extends Point2D.Float implements Drawable {
 
     g.setColor(Color.YELLOW);
     
-    Set<Transmitter> coveredTxers = new HashSet<Transmitter>();
+//    Set<Transmitter> coveredTxers = new HashSet<Transmitter>();
     
     for (CaptureDisk d : this.coveringDisks) {
-      Line2D line = new Line2D.Double(d.t1.getX()*scaleX, d.t1.getY()*scaleY,this.getX()*scaleX,this.getY()*scaleY);
-//      Line2D line = new Line2D.Double(d.disk.getCenterX() * scaleX,
-//          d.disk.getCenterY() * scaleY, this.getX() * scaleX, this.getY()
-//              * scaleY);
-      coveredTxers.add(d.t1);
+//      Line2D line = new Line2D.Double(d.t1.getX()*scaleX, d.t1.getY()*scaleY,this.getX()*scaleX,this.getY()*scaleY);
+      Line2D line = new Line2D.Double(d.disk.getCenterX() * scaleX,
+          d.disk.getCenterY() * scaleY, this.getX() * scaleX, this.getY()
+              * scaleY);
+//      coveredTxers.add(d.t1);
       g.draw(line);
     }
 
     g.setColor(origColor);
-    g.drawString("R" + coveredTxers.size(), (int) (this.getX() * scaleX),
-      (int) (this.getY() * scaleY));
-//    g.drawString("R" + this.coveringDisks.size(), (int) (this.getX() * scaleX),
-//        (int) (this.getY() * scaleY));
+//    g.drawString("R" + coveredTxers.size(), (int) (this.getX() * scaleX),
+//      (int) (this.getY() * scaleY));
+    g.drawString("R" + this.coveringDisks.size(), (int) (this.getX() * scaleX),
+        (int) (this.getY() * scaleY));
     g.setTransform(origTransform);
   }
 }

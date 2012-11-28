@@ -117,6 +117,17 @@
 			<artifactId>kxml2-min</artifactId>
 			<version>2.3.0</version>
 		</dependency>
-
+    <dependency>
+      <groupId>edu.cornell.cs.chew</groupId>
+      <artifactId>voronoi</artifactId>
+      <version>0.1</version>
+      <type>jar</type>
+    </dependency>
+    <dependency>
+      <groupId>nl.big-o</groupId>
+      <artifactId>compgeom</artifactId>
+      <version>0.3</version>
+      <type>jar</type>
+    </dependency>
 	</dependencies>
 </project>
