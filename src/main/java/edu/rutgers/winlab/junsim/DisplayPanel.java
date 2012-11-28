@@ -22,16 +22,22 @@ import java.awt.Dimension;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
-import java.awt.RenderingHints;
-import java.awt.font.FontRenderContext;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 
+import javax.swing.JFrame;
 import javax.swing.JPanel;
+import javax.swing.JProgressBar;
+
+import delaunay.Pnt;
+import delaunay.Triangle;
+import delaunay.Triangulation;
 
 /**
  * @author Robert Moore
@@ -45,13 +51,27 @@ public class DisplayPanel extends JPanel {
   private List<Integer> ranks = null;
   private Collection<Receiver> receiverPoints = new LinkedList<Receiver>();
   private Collection<CaptureDiskGroup> groups = new LinkedList<CaptureDiskGroup>();
-  
+
   private Color backgroundColor = Color.BLACK;
   private Color fontColor = Color.WHITE;
 
+  private int pointRadius = 1;
+
+  private boolean doDelaunay = false;
+  private static int initialSize = 30000; // Size of initial triangle
+  protected Triangle initialTriangle = null;
+
   public DisplayPanel() {
+   this(false);
+  }
+  
+  public DisplayPanel(final boolean doDelaunay) {
     super();
     this.setPreferredSize(new Dimension(640, 480));
+    this.initialTriangle = new Triangle(new Pnt(-initialSize, -initialSize),
+        new Pnt(initialSize, -initialSize), new Pnt(0, initialSize));
+    
+    this.doDelaunay = doDelaunay;
   }
 
   @Override
@@ -97,44 +117,125 @@ public class DisplayPanel extends JPanel {
     // Capture disks (for overlapping arcs)
     g2.setColor(Color.RED);
 
-    for (CaptureDisk d : disks) {
+    for (CaptureDisk d : this.disks) {
       d.draw(g2, scale, scale);
     }
 
     // Solution points
     g2.setColor(Color.GREEN);
 
-    for (Point2D p : points) {
+    for (Point2D p : this.points) {
       g2.fillOval((int) (p.getX() * scale) - 1, (int) (p.getY() * scale) - 1,
           2, 2);
     }
 
     // Ranked points (for binned experiments)
+//    Composite origComposite = g2.getComposite();
+//    g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.3f));
+    int pointDiam = this.pointRadius * 2;
     if (this.rankedPoints != null) {
-
-      int i = 0;
-      float numRanks = this.rankedPoints.size();
-      for (Collection<Point2D> points : this.rankedPoints) {
-        float hue = (i / numRanks) * 0.9f;
-        Color c = Color.getHSBColor(hue, .9f, .9f);
-        g2.setColor(c);
-        for (Point2D p : points) {
-          g2.fillOval((int) (p.getX() * scale) - 1,
-              (int) (p.getY() * scale) - 1, 2, 2);
+     
+      
+      
+      
+      if (this.doDelaunay) {
+        int totalPointSize = 0;
+        for(Collection<Point2D> counter : this.rankedPoints){
+          totalPointSize += counter.size();
         }
+        JProgressBar prog = new JProgressBar(0, totalPointSize);
+        prog.setStringPainted(true);
+        JFrame frame = new JFrame("Progress!");
+        frame.add(prog);
+        frame.pack();
+        frame.setVisible(true);
+        totalPointSize = 0;
+        Triangulation dt = new Triangulation(this.initialTriangle);
+        HashMap<Pnt, Color> pointColors = new HashMap<Pnt, Color>();
+        // int i = this.rankedPoints.size()-1;
+        float numRanks = this.rankedPoints.size();
+        for (int i = this.rankedPoints.size() - 1; i >= 0; --i) {
+          Collection<Point2D> usedPoints = this.rankedPoints.get(i);
+          // for (Collection<Point2D> points : this.rankedPoints) {
+          float hue = (i / numRanks) * 0.9f;
+          Color c = Color.getHSBColor(hue, .9f, .9f);
+          
+          
+          for (Point2D point : usedPoints) {
+            Pnt newPnt = new Pnt(point.getX() * scale, point.getY() * scale);
+            dt.delaunayPlace(newPnt);
+            
+            pointColors.put(newPnt,c);
+            ++totalPointSize;
+            prog.setValue(totalPointSize);
+          }
+          
+//          totalPointSize += usedPoints.size();
+//          prog.setValue(totalPointSize);
+          
 
-        ++i;
+        }
+        
+        
+        HashSet<Pnt> done = new HashSet<Pnt>(this.initialTriangle);
+        prog.setMaximum(dt.size());
+        prog.setValue(0);
+        int currTri = 0;
+        for (Triangle triangle : dt) {
+          currTri++;
+          prog.setValue(currTri);
+          for (Pnt site : triangle) {
+            if (done.contains(site))
+              continue;
+            done.add(site);
+            List<Triangle> list = dt.surroundingTriangles(site, triangle);
+            Color c = pointColors.get(site);
+            if(list.contains(this.initialTriangle)){
+              c = Color.BLACK;
+            }
+            Pnt[] vertices = new Pnt[list.size()];
+            int j = 0;
+            for (Triangle tri : list)
+              vertices[j++] = tri.getCircumcenter();
+            
+            g2.setColor(c);
+            this.draw(g, vertices);
+
+          }
+        }
+        frame.dispose();
+      } else {
+        float numRanks = this.rankedPoints.size();
+        for (int i = 0; i < this.rankedPoints.size();++i) {
+          Collection<Point2D> thePoints = this.rankedPoints.get(i);
+          // for (Collection<Point2D> points : this.rankedPoints) {
+          float hue = (i / numRanks) * 0.9f;
+          Color c = Color.getHSBColor(hue, .9f, .9f);
+          g2.setColor(c);
+
+          for (Point2D p : thePoints) {
+            g2.fillOval((int) (p.getX() * scale) - this.pointRadius,
+                (int) (p.getY() * scale) - this.pointRadius, pointDiam, pointDiam);
+          }
+          
+
+        }
+        
+
+        // ++i;
       }
     }
 
+//    g2.setComposite(origComposite);
+
     // Transmitters
     g2.setColor(this.fontColor);
-    for (Drawable d : devices) {
+    for (Drawable d : this.devices) {
       d.draw(g2, scale, scale);
     }
 
     g2.setColor(Color.BLUE);
-    for (Receiver p : receiverPoints) {
+    for (Receiver p : this.receiverPoints) {
       p.draw(g2, scale, scale);
     }
 
@@ -167,11 +268,10 @@ public class DisplayPanel extends JPanel {
       FontMetrics metrics = g2.getFontMetrics();
       int fontHeight = metrics.getHeight();
       int fontWidth = metrics.stringWidth("0000");
-      
-      
-      Rectangle2D legendBox = new Rectangle2D.Float(width-fontWidth-40, 10-fontHeight, width-2, 110+fontHeight);
-      
-      
+
+      Rectangle2D legendBox = new Rectangle2D.Float(width - fontWidth - 40,
+          10 - fontHeight, width - 2, 110 + fontHeight);
+
       g2.setColor(this.backgroundColor);
       g2.fill(legendBox);
       g2.setColor(this.fontColor);
@@ -182,17 +282,16 @@ public class DisplayPanel extends JPanel {
       float rankHeight = 100f / numRanks;
       float currStartY = 110;
 
-     
       float lastFontStart = height;
-      
+
       float maxRankSize = 0;
-      for(Collection<Point2D> coll : this.rankedPoints){
+      for (Collection<Point2D> coll : this.rankedPoints) {
         int size = coll.size();
-        if(size > maxRankSize){
+        if (size > maxRankSize) {
           maxRankSize = size;
         }
       }
-      
+
       int numRanksInt = this.rankedPoints.size();
 
       for (int i = 0; i < numRanksInt; ++i, currStartY -= rankHeight) {
@@ -200,17 +299,18 @@ public class DisplayPanel extends JPanel {
         float hue = (i / numRanks) * 0.9f;
         Color c = Color.getHSBColor(hue, .9f, .9f);
         g2.setColor(c);
-        float barWidth = (numPoints/maxRankSize) * 30;
-        if(barWidth < 3){
-          barWidth = 3;
+        float barWidth = (numPoints / maxRankSize) * 30;
+        if (barWidth < 1) {
+          barWidth = 1;
         }
-        
-        Rectangle2D.Float rect = new Rectangle2D.Float(width - fontWidth-35, currStartY,
-            barWidth, rankHeight);
+
+        Rectangle2D.Float rect = new Rectangle2D.Float(width - fontWidth - 35,
+            currStartY, barWidth, rankHeight);
         g2.fill(rect);
         if (currStartY < lastFontStart - fontHeight) {
           g2.setColor(this.fontColor);
-          g2.drawString(String.format("%d", this.ranks.get(i)), width - fontWidth-5, currStartY+(fontHeight/2f));
+          g2.drawString(String.format("%d", this.ranks.get(i)), width
+              - fontWidth - 5, currStartY + (fontHeight / 2f));
           lastFontStart = currStartY;
         }
 
@@ -221,6 +321,25 @@ public class DisplayPanel extends JPanel {
     g2.drawString(
         "T" + this.devices.size() + " R" + this.receiverPoints.size(), 0,
         height);
+  }
+
+  /**
+   * Draw a polygon.
+   * 
+   * @param polygon
+   *          an array of polygon vertices
+   * @param fillColor
+   *          null implies no fill
+   */
+  public void draw(final Graphics g, Pnt[] polygon) {
+
+    int[] x = new int[polygon.length];
+    int[] y = new int[polygon.length];
+    for (int i = 0; i < polygon.length; i++) {
+      x[i] = (int) polygon[i].coord(0);
+      y[i] = (int) polygon[i].coord(1);
+    }
+    g.fillPolygon(x, y, polygon.length);
   }
 
   public void setTransmitters(Collection<Transmitter> devices) {
@@ -251,7 +370,8 @@ public class DisplayPanel extends JPanel {
     this.repaint(10);
   }
 
-  public void setRankedSolutionPoints(List<Collection<Point2D>> points, List<Integer> ranks) {
+  public void setRankedSolutionPoints(List<Collection<Point2D>> points,
+      List<Integer> ranks) {
     this.rankedPoints = points;
     this.ranks = ranks;
   }

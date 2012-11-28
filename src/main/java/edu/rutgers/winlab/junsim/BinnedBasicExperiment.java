@@ -193,7 +193,7 @@ public class BinnedBasicExperiment implements Experiment {
   }
 
   public Boolean perform() {
-    final DisplayPanel display = new DisplayPanel();
+    final DisplayPanel display = new DisplayPanel(Main.config.isDelaunay());
 
     if (Main.config.generateImages) {
 
@@ -385,7 +385,7 @@ public class BinnedBasicExperiment implements Experiment {
         display.setRankedSolutionPoints(this.binner.getBins(),this.binner.getBinMins());
 
         // display.setSolutionPoints(this.binner.getMaxBin());
-        display.setCaptureDisks(disks);
+//        display.setCaptureDisks(disks);
         display.setReceiverPoints(receivers);
 
         final String saveName = String.format(this.saveDirectory

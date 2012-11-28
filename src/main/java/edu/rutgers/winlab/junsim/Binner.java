@@ -130,6 +130,9 @@ public class Binner {
     }
 
     int tickSize = maxSize / 60;
+    if(tickSize == 0){
+      tickSize = 1;
+    }
     boolean skip = true;
 
     for (int i = this.bins.length - 1; i >= 0; --i) {

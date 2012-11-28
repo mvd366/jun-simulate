@@ -101,6 +101,12 @@ public class Config {
   float maxRangeMeters = 100f;
   
   /**
+   * Whether to perform a Delaunay triangulation or not during rendering.
+   */
+  boolean delaunay = false;
+  
+  
+  /**
    * Type of experiment to run.
    * "basic", "binned"
    */
@@ -192,5 +198,13 @@ public class Config {
 
   public void setGenerateImages(boolean generateImages) {
     this.generateImages = generateImages;
+  }
+
+  public boolean isDelaunay() {
+    return delaunay;
+  }
+
+  public void setDelaunay(boolean delaunay) {
+    this.delaunay = delaunay;
   }
 }

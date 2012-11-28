@@ -44,5 +44,8 @@
        * "binned" - faster algorithm uses binning of scores to reduce 
             computation. Under development and may have bugs. -->
   <experimentType>binned</experimentType>
+  <!-- True if you want Delaunay Triangulation output in images. Can take
+       an enormously long time! -->
+  <delaunay>false</delaunay>
 </edu.rutgers.winlab.junsim.Config>
 
