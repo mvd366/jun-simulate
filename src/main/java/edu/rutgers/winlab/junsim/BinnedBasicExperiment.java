@@ -70,9 +70,17 @@ public class BinnedBasicExperiment implements Experiment {
   private final ExecutorService workers;
 
   private Binner binner;
+
+  private int numBins = 50;
+
+  /**
+   * Number of bins used to force a "rebin".
+   */
+  private int rebinAt = 4;
   
-  private int numBins = 100;
-  
+  /**
+   * Don't rebin if the max is below this value.
+   */
   private int minRebinValue = 2;
 
   /**
@@ -334,8 +342,8 @@ public class BinnedBasicExperiment implements Experiment {
 
       if (highestBindex == 0) {
         int max = maxReceiver.coveringDisks.size();
-        if (max > this.minRebinValue) {
-          this.binner.rebin(1, maxReceiver.coveringDisks.size() / 2);
+        if(max > this.minRebinValue){
+          this.binner.rebin(1, max / 2);
         }
       }
 
@@ -374,7 +382,9 @@ public class BinnedBasicExperiment implements Experiment {
       // Debugging stuff
       if (Main.config.generateImages) {
         display.setTransmitters(this.config.transmitters);
-        display.setSolutionPoints(this.binner.getMaxBin());
+        display.setRankedSolutionPoints(this.binner.getBins(),this.binner.getBinMins());
+
+        // display.setSolutionPoints(this.binner.getMaxBin());
         display.setCaptureDisks(disks);
         display.setReceiverPoints(receivers);
 
@@ -416,34 +426,40 @@ public class BinnedBasicExperiment implements Experiment {
   private static Collection<Point2D> generateSolutionPoints(
       final Collection<CaptureDisk> disks,
       final Collection<Transmitter> transmitters) {
-    // Add center points of all capture disks as solutions
+
     final Collection<Point2D> solutionPoints = new HashSet<Point2D>();
-    for (final CaptureDisk disk : disks) {
-      if (disk.disk.getCenterX() < 0
-          || disk.disk.getCenterX() >= Main.config.universeWidth
-          || disk.disk.getCenterY() < 0
-          || disk.disk.getCenterY() > Main.config.universeHeight) {
-        continue;
-      }
-      final Point2D.Float center = new Point2D.Float(
-          (float) disk.disk.getCenterX(), (float) disk.disk.getCenterY());
-      if (BinnedBasicExperiment.checkPointInRange(center, transmitters)) {
-        solutionPoints.add(center);
-      }
-    }
 
     // Add intersection of all capture disks as solutions
     for (final CaptureDisk d1 : disks) {
+      boolean hadIntersection = false;
       for (final CaptureDisk d2 : disks) {
         final Collection<Point2D> intersections = Main.generateIntersections(
             d1, d2);
         if (intersections != null && !intersections.isEmpty()) {
           for (final Point2D p : intersections) {
             if (BinnedBasicExperiment.checkPointInRange(p, transmitters)) {
+              hadIntersection = true;
               solutionPoints.add(p);
             }
           }
         }
+      }// End inner disk
+
+      /*
+       * Skip the center point if there was an intersection or if the center is
+       * outside the "universe".
+       */
+
+      if (hadIntersection || d1.disk.getCenterX() < 0
+          || d1.disk.getCenterX() >= Main.config.universeWidth
+          || d1.disk.getCenterY() < 0
+          || d1.disk.getCenterY() > Main.config.universeHeight) {
+        continue;
+      }
+      final Point2D.Float center = new Point2D.Float(
+          (float) d1.disk.getCenterX(), (float) d1.disk.getCenterY());
+      if (BinnedBasicExperiment.checkPointInRange(center, transmitters)) {
+        solutionPoints.add(center);
       }
     }
 

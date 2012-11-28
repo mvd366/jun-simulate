@@ -20,6 +20,8 @@ package edu.rutgers.winlab.junsim;
 import java.awt.geom.Point2D;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -46,7 +48,7 @@ public class Binner {
       step = 1;
     }
     
-    int binStart = step;
+    int binStart = min+step;
     for(int i = 1; i < this.binMins.length; ++i, binStart+=step){
       this.binMins[i] = binStart;
     }
@@ -63,7 +65,7 @@ public class Binner {
     if(step < 1){
       step = 1;
     }
-    int binStart = step;
+    int binStart = min+step;
     for(int i = 1; i < this.binMins.length; ++i, binStart+=step){
       this.binMins[i] = binStart;
     }
@@ -158,5 +160,26 @@ public class Binner {
     for(Set<Point2D> bin : this.bins){
       bin.clear();
     }
+  }
+  
+  /**
+   * Returns bins in the order of highest-ranked to lowest-ranked.
+   * 
+   * @return bins in the order of highest-ranked to lowest-ranked.
+   */
+  public List<Collection<Point2D>> getBins(){
+    LinkedList<Collection<Point2D>> returnedList = new LinkedList<Collection<Point2D>>();
+    for(Set<Point2D> set : this.bins){
+      returnedList.add(set);
+    }
+    return returnedList;
+  }
+  
+  public List<Integer> getBinMins(){
+    LinkedList<Integer> list = new LinkedList<Integer>();
+    for(int min : this.binMins){
+      list.add(Integer.valueOf(min));
+    }
+    return list;
   }
 }
