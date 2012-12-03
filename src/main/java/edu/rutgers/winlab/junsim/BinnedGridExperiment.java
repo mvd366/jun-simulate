@@ -193,16 +193,21 @@ public class BinnedGridExperiment implements Experiment {
   }
 
   public Boolean perform() {
-    final DisplayPanel display = new DisplayPanel(Main.gfxConfig);
-
+    final FileRenderer display = new FileRenderer(Main.gfxConfig);
+    
+    
     if (Main.gfxConfig.generateImages) {
-
       display.setTransmitters(this.config.transmitters);
-      saveImage(display, this.saveDirectory + File.separator + "0000");
+    
+
+      final String saveName = this.saveDirectory
+          + File.separator + "1000";
+      Main.saveImage(display, saveName);
       display.clear();
+
     }
 
-    final Collection<CaptureDisk> disks = new HashSet<CaptureDisk>();
+       final Collection<CaptureDisk> disks = new HashSet<CaptureDisk>();
     // Compute all possible capture disks
     for (final Transmitter t1 : this.config.transmitters) {
       for (final Transmitter t2 : this.config.transmitters) {
@@ -214,24 +219,12 @@ public class BinnedGridExperiment implements Experiment {
     }
     log.info("[" + this.config.trialNumber + "] Generated " + disks.size()
         + " disks.");
-    if (Main.gfxConfig.generateImages) {
-      display.setTransmitters(this.config.transmitters);
-      display.setCaptureDisks(disks);
-      saveImage(display, this.saveDirectory + File.separator + "0010");
-      display.clear();
-    }
 
     Collection<Point2D> startingPoints = BinnedGridExperiment
         .generateSolutionPoints(Main.config.universeWidth, Main.config.universeHeight, this.config.transmitters);
     log.info(String.format("[%d] Generated %,d solution points.\n",
         this.config.trialNumber, startingPoints.size()));
-    if (Main.gfxConfig.generateImages) {
-      display.setTransmitters(this.config.transmitters);
-      display.setSolutionPoints(startingPoints);
-      display.setCaptureDisks(disks);
-      saveImage(display, this.saveDirectory + File.separator + "0020");
-      display.clear();
-    }
+   
 
     final int totalCaptureDisks = disks.size();
     // final int startingSolutionPoints = startingPoints.size();
@@ -354,8 +347,10 @@ public class BinnedGridExperiment implements Experiment {
       // calculations
       for (final CaptureDisk disk : maxReceiver.coveringDisks) {
         capturedCollisions.get(disk.t1).add(disk.t2);
+        disk.t1.addCoveredDisk(disk);
       }
       disks.removeAll(maxReceiver.coveringDisks);
+      
 
       // Calculate collision rates for each transmitter
       // Store the min, max, and mean
@@ -386,12 +381,12 @@ public class BinnedGridExperiment implements Experiment {
             this.binner.getBinMins());
 
         // display.setSolutionPoints(this.binner.getMaxBin());
-        // display.setCaptureDisks(disks);
+         display.setCaptureDisks(disks);
         display.setReceiverPoints(receivers);
 
         final String saveName = String.format(this.saveDirectory
             + File.separator + "1%03d", (m + 1));
-        saveImage(display, saveName);
+        Main.saveImage(display, saveName);
         display.clear();
 
       }
@@ -467,36 +462,6 @@ public class BinnedGridExperiment implements Experiment {
       }
     }
     return false;
-  }
-
-  private void saveImage(final DisplayPanel display, final String fileName) {
-    final long start = System.currentTimeMillis();
-    final File imageFile = new File(fileName + ".png");
-    System.out.printf("Rendering \"%s\".\n", imageFile);
-    final BufferedImage img = new BufferedImage(Main.gfxConfig.renderWidth,
-        Main.gfxConfig.renderHeight, BufferedImage.TYPE_INT_RGB);
-    final Graphics g = img.createGraphics();
-
-    display.render(g, img.getWidth(), img.getHeight());
-
-    imageFile.mkdirs();
-    if (!imageFile.exists()) {
-      try {
-        imageFile.createNewFile();
-      } catch (final IOException e) {
-        // TODO Auto-generated catch block
-        e.printStackTrace();
-      }
-    }
-    try {
-      ImageIO.write(img, "png", imageFile);
-      System.out.println("Saved " + imageFile.getName());
-    } catch (final Exception e) {
-      e.printStackTrace();
-    }
-    g.dispose();
-    final long duration = System.currentTimeMillis() - start;
-    System.out.printf("Rendering took %,dms.\n", duration);
   }
 
 }

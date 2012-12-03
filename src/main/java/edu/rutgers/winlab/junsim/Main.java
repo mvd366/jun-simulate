@@ -18,7 +18,9 @@
 package edu.rutgers.winlab.junsim;
 
 import java.awt.Dimension;
+import java.awt.Graphics;
 import java.awt.geom.Point2D;
+import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileWriter;
@@ -35,6 +37,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import javax.imageio.ImageIO;
 import javax.swing.JFrame;
 
 import com.thoughtworks.xstream.XStream;
@@ -156,6 +159,10 @@ public class Main {
     fileWriter
         .println("# Tx, # Rx, Min % Covered, Med. % Covered, Mean % Covered, 95% Coverage, Max % Covered, Min Contention, Med. Contention, Mean Contention, 95% Contention, Max Contention");
 
+    
+    
+    
+    
     // Iterate through some number of trials
     for (int trialNumber = 0; trialNumber < Main.config.numTrials; ++trialNumber) {
 
@@ -280,6 +287,8 @@ public class Main {
     captureDisk.disk.center.x = (float) centerX;
     captureDisk.disk.center.y = (float) centerY;
 
+    t1.addDisk(captureDisk);
+    
     return captureDisk;
   }
 
@@ -343,5 +352,35 @@ public class Main {
       points.add(new Point2D.Float((float) x4ii, (float) y4ii));
     }
     return points;
+  }
+  
+  public static void saveImage(final FileRenderer display, final String fileName) {
+    final long start = System.currentTimeMillis();
+    final File imageFile = new File(fileName + ".png");
+    System.out.printf("Rendering \"%s\".\n", imageFile);
+    final BufferedImage img = new BufferedImage(Main.gfxConfig.renderWidth,
+        Main.gfxConfig.renderHeight, gfxConfig.isUseColorMode() ?  BufferedImage.TYPE_INT_RGB : BufferedImage.TYPE_BYTE_GRAY);
+    final Graphics g = img.createGraphics();
+
+    display.render(g, img.getWidth(), img.getHeight());
+
+    imageFile.mkdirs();
+    if (!imageFile.exists()) {
+      try {
+        imageFile.createNewFile();
+      } catch (final IOException e) {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+      }
+    }
+    try {
+      ImageIO.write(img, "png", imageFile);
+      System.out.println("Saved " + imageFile.getName());
+    } catch (final Exception e) {
+      e.printStackTrace();
+    }
+    g.dispose();
+    final long duration = System.currentTimeMillis() - start;
+    System.out.printf("Rendering took %,dms.\n", duration);
   }
 }

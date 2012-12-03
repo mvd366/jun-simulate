@@ -18,6 +18,8 @@
  */
 package edu.rutgers.winlab.junsim;
 
+import com.thoughtworks.xstream.XStream;
+
 /**
  * @author Robert Moore
  *
@@ -38,6 +40,21 @@ public class RenderConfig {
    * Pixel height of rendered image.
    */
   int renderHeight = 600;
+  
+  boolean drawTransmitters = true;
+  
+  boolean drawReceivers = true;
+  
+  boolean drawReceiverLines = true;
+  
+  boolean drawSolutionPoints = true;
+  
+  boolean drawLegend = true;
+  
+  boolean useColorMode = true;
+  
+  boolean drawCaptureDisks = false;
+  
   public boolean isGenerateImages() {
     return generateImages;
   }
@@ -56,5 +73,52 @@ public class RenderConfig {
   public void setRenderHeight(int renderHeight) {
     this.renderHeight = renderHeight;
   }
+  public boolean isDrawTransmitters() {
+    return drawTransmitters;
+  }
+  public void setDrawTransmitters(boolean drawTransmitters) {
+    this.drawTransmitters = drawTransmitters;
+  }
+  public boolean isDrawReceivers() {
+    return drawReceivers;
+  }
+  public void setDrawReceivers(boolean drawReceivers) {
+    this.drawReceivers = drawReceivers;
+  }
+  public boolean isDrawReceiverLines() {
+    return drawReceiverLines;
+  }
+  public void setDrawReceiverLines(boolean drawReceiverLines) {
+    this.drawReceiverLines = drawReceiverLines;
+  }
+  public boolean isDrawSolutionPoints() {
+    return drawSolutionPoints;
+  }
+  public void setDrawSolutionPoints(boolean drawSolutionPoints) {
+    this.drawSolutionPoints = drawSolutionPoints;
+  }
+  public boolean isDrawLegend() {
+    return drawLegend;
+  }
+  public void setDrawLegend(boolean drawLegend) {
+    this.drawLegend = drawLegend;
+  }
+  public boolean isUseColorMode() {
+    return useColorMode;
+  }
+  public void setUseColorMode(boolean useColorMode) {
+    this.useColorMode = useColorMode;
+  }
+  public boolean isDrawCaptureDisks() {
+    return drawCaptureDisks;
+  }
+  public void setDrawCaptureDisks(boolean drawCaptureDisks) {
+    this.drawCaptureDisks = drawCaptureDisks;
+  }
 
+  public static void main(String[]args){
+    XStream x = new XStream();
+    System.out.println(x.toXML(new RenderConfig()));
+  }
+  
 }
