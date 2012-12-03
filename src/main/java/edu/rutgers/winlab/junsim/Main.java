@@ -43,7 +43,6 @@ import com.thoughtworks.xstream.XStream;
  * Main class to start the receiver placement simulations.
  * 
  * @author Robert Moore
- * 
  */
 public class Main {
 
@@ -51,6 +50,11 @@ public class Main {
    * Configuration file for the application.
    */
   static Config config = new Config();
+
+  /**
+   * Configuration for rendering images.
+   */
+  static RenderConfig gfxConfig = new RenderConfig();
 
   /**
    * Random number generator.
@@ -76,15 +80,27 @@ public class Main {
    *           if an exception occurs while reading the configuration file.
    */
   public static void main(String[] args) throws IOException {
+    XStream configReader = new XStream();
     if (args.length == 1) {
       System.out.println("Using configuration file " + args[0]);
-      XStream configReader = new XStream();
+
       File configFile = new File(args[0]);
       Main.config = (Config) configReader.fromXML(configFile);
     } else {
       System.out.println("Using built-in default configuration.");
     }
     rand = new Random(Main.config.randomSeed);
+
+    try {
+      RenderConfig rConf = (RenderConfig) configReader.fromXML(new File(
+          config.renderConfig));
+      gfxConfig = rConf;
+
+    } catch (Exception e) {
+      System.err.println("Unable to read rendering configuration file \""
+          + config.renderConfig + "\".");
+      e.printStackTrace();
+    }
 
     if (Main.config.numThreads < 1) {
       Main.config.numThreads = Runtime.getRuntime().availableProcessors();
@@ -107,11 +123,8 @@ public class Main {
       }
     });
 
-    if (Main.config.showDisplay) {
-      doDisplayedResult();
-    } else {
-      doSimulation();
-    }
+    doSimulation();
+
   }
 
   /**
@@ -157,12 +170,14 @@ public class Main {
       conf.transmitters = transmitters;
       conf.numReceivers = Main.config.numReceivers;
 
-      Experiment task; 
-      if("binned".equalsIgnoreCase(config.experimentType)){
+      Experiment task;
+      if ("binned".equalsIgnoreCase(config.experimentType)) {
         task = new BinnedBasicExperiment(conf, stats, workers);
-      }else {
-        task = new BasicExperiment(conf, stats, workers); 
-      } 
+      } else if ("grid".equalsIgnoreCase(config.experimentType)) {
+        task = new BinnedGridExperiment(conf, stats, workers);
+      } else {
+        task = new BasicExperiment(conf, stats, workers);
+      }
       task.perform();
     } // End number of trials
 
@@ -196,140 +211,6 @@ public class Main {
     }
     fileWriter.flush();
     fileWriter.close();
-  }
-
-  /**
-   * Performs an interactive simulation, prompting for [Enter] after each step.
-   * 
-   * @throws IOException
-   *           if an Exception occurs.
-   */
-  public static void doDisplayedResult() throws IOException {
-
-    DisplayPanel display = new DisplayPanel();
-    display.setPreferredSize(new Dimension(640, 480));
-
-    JFrame frame = new JFrame();
-
-    frame.setContentPane(display);
-    frame.pack();
-
-    frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-    frame.setVisible(true);
-
-    Collection<Transmitter> transmitters = generateTransmitterLocations(Main.config.numTransmitters);
-    BufferedReader userPrompt = new BufferedReader(new InputStreamReader(
-        System.in));
-    display.setTransmitters(transmitters);
-    System.out.println("[Transmitters]");
-    userPrompt.readLine();
-
-    Collection<CaptureDisk> disks = new HashSet<CaptureDisk>();
-    // Compute all possible capture disks
-    for (Transmitter t1 : transmitters) {
-      for (Transmitter t2 : transmitters) {
-        CaptureDisk someDisk = generateCaptureDisk(t1, t2);
-        if (someDisk != null) {
-          disks.add(someDisk);
-        }
-      }
-    }
-
-    display.setCaptureDisks(disks);
-    System.out.println("[Capture Disks]");
-    userPrompt.readLine();
-
-    // Add center points of all capture disks as solutions
-    Collection<Point2D> solutionPoints = new HashSet<Point2D>();
-    for (CaptureDisk disk : disks) {
-      solutionPoints.add(new Point2D.Float((float) disk.disk.getCenterX(),
-          (float) disk.disk.getCenterY()));
-    }
-
-    // Add intersection of all capture disks as solutions
-    for (CaptureDisk d1 : disks) {
-      for (CaptureDisk d2 : disks) {
-        Collection<Point2D> intersections = generateIntersections(d1, d2);
-        if (intersections != null && !intersections.isEmpty()) {
-          solutionPoints.addAll(intersections);
-        }
-      }
-    }
-    display.setSolutionPoints(solutionPoints);
-    System.out.println("[Solution Points]");
-    userPrompt.readLine();
-
-    Collection<Receiver> receiverPositions = new ConcurrentLinkedQueue<Receiver>();
-
-    int m = 0;
-
-    int totalCaptureDisks = disks.size();
-
-    System.out.println("Transmitters: " + Main.config.numTransmitters);
-    System.out.println("Receivers: " + Main.config.numReceivers);
-    System.out.println("Capture disks: " + totalCaptureDisks);
-    System.out.println("Solution points: " + solutionPoints.size());
-
-    // Keep going while there are either solution points or capture disks
-    while (m < Main.config.numReceivers && !solutionPoints.isEmpty()
-        && !disks.isEmpty()) {
-      ConcurrentHashMap<Point2D, Collection<CaptureDisk>> bipartiteGraph = new ConcurrentHashMap<Point2D, Collection<CaptureDisk>>();
-      ++m;
-      Point2D maxPoint = null;
-      int maxDisks = Integer.MIN_VALUE;
-
-      // For each solution point, map the set of capture disks that contain it
-      for (Point2D p : solutionPoints) {
-        for (CaptureDisk d : disks) {
-          if (d.disk.contains(p)) {
-            Collection<CaptureDisk> containingPoints = bipartiteGraph.get(p);
-            if (containingPoints == null) {
-              containingPoints = new HashSet<CaptureDisk>();
-              bipartiteGraph.put(p, containingPoints);
-            }
-            containingPoints.add(d);
-            if (containingPoints.size() > maxDisks) {
-              maxDisks = containingPoints.size();
-              maxPoint = p;
-            }
-          }
-        }
-      }
-
-      // Remove the highest point and its solution disks
-      if (maxDisks > 0) {
-        Collection<CaptureDisk> removedDisks = bipartiteGraph.get(maxPoint);
-        Receiver r = new Receiver();
-        r.setLocation(maxPoint);
-        r.coveringDisks = removedDisks;
-        receiverPositions.add(r);
-        solutionPoints.remove(maxPoint);
-        disks.removeAll(removedDisks);
-      }
-      // No solutions found?
-      else {
-        break;
-      }
-    }
-
-    display.setReceiverPoints(receiverPositions);
-
-    float capturedDisks = totalCaptureDisks - disks.size();
-    float captureRatio = (capturedDisks / totalCaptureDisks);
-
-    System.out.printf("%.2f%% capture rate (%d/%d)\n",
-        Float.valueOf(captureRatio * 100),
-        Integer.valueOf((int) capturedDisks),
-        Integer.valueOf(totalCaptureDisks));
-
-    System.out.println("*********************");
-    System.out.println("Press [ENTER] to QUIT");
-    System.out.println("*********************");
-    userPrompt.readLine();
-    if (Main.config.showDisplay) {
-      frame.setVisible(false);
-      frame.dispose();
-    }
   }
 
   /**

@@ -19,14 +19,8 @@
   <!-- Vertical dimension for the region in which to place receivers.
        Must be equal to or greater than squareHeight. -->
   <universeHeight>200</universeHeight>
-  <!-- Width dimension for produced PNG images. -->
-  <renderWidth>1920</renderWidth>
-  <!-- Height dimension for produced PNG images. -->
-  <renderHeight>1080</renderHeight>
   <!-- Seed for generating random positions. -->
   <randomSeed>2</randomSeed>
-  <!-- Whether or not to step through the algorithm with a GUI. -->
-  <showDisplay>false</showDisplay>
   <!-- Number of repeated trials to perform. -->
   <numTrials>1</numTrials>
   <!-- Output file for statistics. -->
@@ -35,17 +29,19 @@
        or equal to 0, then the number of workers will equal the number
        of logical processors available. -->
   <numThreads>0</numThreads>
-  <!-- Whether or not to generate PNG images of each step. -->
-  <generateImages>true</generateImages>
   <!-- How far a transmitter's packet can be received by a receiver. -->
   <maxRangeMeters>40</maxRangeMeters>
   <!-- The type of experiment to run. Options are:
        * "basic" - standard algorithm, known to produce correct results.
        * "binned" - faster algorithm uses binning of scores to reduce 
-            computation. Under development and may have bugs. -->
+            computation. 
+       * "grid" - produces a grid of points to test rather than looking
+                  at circle intersections. -->
   <experimentType>binned</experimentType>
-  <!-- True if you want Delaunay Triangulation output in images. Can take
-       an enormously long time! -->
-  <delaunay>false</delaunay>
+  <!-- Number of points per "square unit." Only applicable for "grid"
+       experiment types. -->
+  <gridDensity>25</gridDensity>
+  <!-- Graphics rendering configuration filename. -->
+  <renderConfig>src/main/resources/graphics.xml</renderConfig>
 </edu.rutgers.winlab.junsim.Config>
 

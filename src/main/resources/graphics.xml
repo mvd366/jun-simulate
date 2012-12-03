@@ -1,0 +1,8 @@
+<edu.rutgers.winlab.junsim.RenderConfig>
+  <!-- Boolean flag to enable graphics output for experiments. -->
+  <generateImages>true</generateImages>
+  <!-- Width of rendered images (in pixels). -->
+  <renderWidth>800</renderWidth>
+  <!-- Height of rendered images (in pixels). -->
+  <renderHeight>600</renderHeight>
+</edu.rutgers.winlab.junsim.RenderConfig>

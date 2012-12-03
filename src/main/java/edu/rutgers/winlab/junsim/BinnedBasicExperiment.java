@@ -193,9 +193,9 @@ public class BinnedBasicExperiment implements Experiment {
   }
 
   public Boolean perform() {
-    final DisplayPanel display = new DisplayPanel(Main.config.isDelaunay());
+    final DisplayPanel display = new DisplayPanel(Main.gfxConfig);
 
-    if (Main.config.generateImages) {
+    if (Main.gfxConfig.generateImages) {
 
       display.setTransmitters(this.config.transmitters);
       saveImage(display, this.saveDirectory + File.separator + "0000");
@@ -214,7 +214,7 @@ public class BinnedBasicExperiment implements Experiment {
     }
     log.info("[" + this.config.trialNumber + "] Generated " + disks.size()
         + " disks.");
-    if (Main.config.generateImages) {
+    if (Main.gfxConfig.generateImages) {
       display.setTransmitters(this.config.transmitters);
       display.setCaptureDisks(disks);
       saveImage(display, this.saveDirectory + File.separator + "0010");
@@ -225,7 +225,7 @@ public class BinnedBasicExperiment implements Experiment {
         .generateSolutionPoints(disks, this.config.transmitters);
     log.info(String.format("[%d] Generated %,d solution points.\n",
         this.config.trialNumber, startingPoints.size()));
-    if (Main.config.generateImages) {
+    if (Main.gfxConfig.generateImages) {
       display.setTransmitters(this.config.transmitters);
       display.setSolutionPoints(startingPoints);
       display.setCaptureDisks(disks);
@@ -380,7 +380,7 @@ public class BinnedBasicExperiment implements Experiment {
       final float capturedDisks = totalCaptureDisks - disks.size();
       final float captureRatio = (capturedDisks / totalCaptureDisks);
       // Debugging stuff
-      if (Main.config.generateImages) {
+      if (Main.gfxConfig.generateImages) {
         display.setTransmitters(this.config.transmitters);
         display.setRankedSolutionPoints(this.binner.getBins(),this.binner.getBinMins());
 
@@ -491,8 +491,8 @@ public class BinnedBasicExperiment implements Experiment {
     final long start = System.currentTimeMillis();
     final File imageFile = new File(fileName + ".png");
     System.out.printf("Rendering \"%s\".\n", imageFile);
-    final BufferedImage img = new BufferedImage(Main.config.renderWidth,
-        Main.config.renderHeight, BufferedImage.TYPE_INT_RGB);
+    final BufferedImage img = new BufferedImage(Main.gfxConfig.renderWidth,
+        Main.gfxConfig.renderHeight, BufferedImage.TYPE_INT_RGB);
     final Graphics g = img.createGraphics();
 
     display.render(g, img.getWidth(), img.getHeight());

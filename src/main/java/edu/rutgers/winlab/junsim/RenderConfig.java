@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2012 Robert Moore and Rutgers University
+ * Owl Platform
+ * Copyright (C) 2012 Robert Moore and the Owl Platform
  * 
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,30 +18,43 @@
  */
 package edu.rutgers.winlab.junsim;
 
-import java.util.Collection;
-
 /**
- * Configuration for a simulation task.
  * @author Robert Moore
  *
  */
-public class TaskConfig {
-  /**
-   * The ordinal number of this trial (0th, 1st, 2nd, etc.)
-   */
-  int trialNumber = 0;
-  /**
-   * Total number of transmitters used.
-   */
-  int numTransmitters;
-  /**
-   * Collection of transmitters to use.
-   */
-  Collection<Transmitter> transmitters;
-  /**
-   * Maximum number of receivers to place.
-   */
-  int numReceivers;
+public class RenderConfig {
+ 
   
+  /**
+   * Whether or not to render images.
+   */
+  boolean generateImages = false;
   
+  /**
+   * Pixel width of rendered image.
+   */
+  int renderWidth = 800;
+  /**
+   * Pixel height of rendered image.
+   */
+  int renderHeight = 600;
+  public boolean isGenerateImages() {
+    return generateImages;
+  }
+  public void setGenerateImages(boolean generateImages) {
+    this.generateImages = generateImages;
+  }
+  public int getRenderWidth() {
+    return renderWidth;
+  }
+  public void setRenderWidth(int renderWidth) {
+    this.renderWidth = renderWidth;
+  }
+  public int getRenderHeight() {
+    return renderHeight;
+  }
+  public void setRenderHeight(int renderHeight) {
+    this.renderHeight = renderHeight;
+  }
+
 }
