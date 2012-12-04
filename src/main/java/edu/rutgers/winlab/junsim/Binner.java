@@ -76,6 +76,12 @@ public class Binner {
     this.bins[bindex].add(point);
     return bindex;
   }
+  
+  public int putAll(Collection<Point2D> points, int score){
+    int bindex = getBindex(score);
+    this.bins[bindex].addAll(points);
+    return bindex;
+  }
 
   public void set(Collection<Point2D> points, int score) {
     int bindex = getBindex(score);

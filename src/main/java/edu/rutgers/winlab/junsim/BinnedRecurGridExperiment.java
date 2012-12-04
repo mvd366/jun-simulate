@@ -47,10 +47,10 @@ import org.slf4j.LoggerFactory;
  * 
  * @author Robert Moore
  */
-public class BinnedBasicExperiment implements Experiment {
+public class BinnedRecurGridExperiment implements Experiment {
 
   private static final Logger log = LoggerFactory
-      .getLogger(BinnedBasicExperiment.class);
+      .getLogger(BinnedRecurGridExperiment.class);
 
   /**
    * Configuration for this task.
@@ -83,6 +83,8 @@ public class BinnedBasicExperiment implements Experiment {
    */
   private int minRebinValue = 2;
 
+  private final FileRenderer render;
+
   /**
    * Creates a new experiment task with the specific configuration, global stats
    * to update, and worker pool.
@@ -94,7 +96,7 @@ public class BinnedBasicExperiment implements Experiment {
    * @param workers
    *          worker threadpool to utilize.
    */
-  public BinnedBasicExperiment(final TaskConfig config,
+  public BinnedRecurGridExperiment(final TaskConfig config,
       final ExperimentStats[] stats, final ExecutorService workers) {
     super();
     this.workers = workers;
@@ -105,7 +107,7 @@ public class BinnedBasicExperiment implements Experiment {
         Long.valueOf(Main.config.randomSeed),
         Integer.valueOf(this.config.numTransmitters),
         Integer.valueOf(this.config.trialNumber));
-
+    this.render = new FileRenderer(Main.gfxConfig);
   }
 
   /**
@@ -148,8 +150,10 @@ public class BinnedBasicExperiment implements Experiment {
       Collection<CaptureDisk> maxPointDisks = null;
       int maxDisks = 0;
       final int totalDisks = this.disks.size();
-      log.info(String.format("Computing %,d points for %,d disks.",
-          this.solutionPoints.size(), totalDisks));
+      log.info(String.format(
+          "Computing %,d points for %,d disks. Desired bin: %d.",
+          this.solutionPoints.size(), totalDisks, desiredBin));
+
       /*
        * Determine the number of disks that intersect this point. If the number
        * is the new max, then save it. If there are no intersections, remove it.
@@ -160,7 +164,7 @@ public class BinnedBasicExperiment implements Experiment {
         final Collection<CaptureDisk> pDisk = new HashSet<CaptureDisk>();
 
         for (final CaptureDisk d : this.disks) {
-          if (BinnedBasicExperiment.checkPointInDisk(p, d)) {
+          if (BinnedRecurGridExperiment.checkPointInDisk(p, d)) {
             pDisk.add(d);
           }
         }
@@ -168,6 +172,7 @@ public class BinnedBasicExperiment implements Experiment {
 
         if (size > 0) {
           int bindex = this.binner.put(p, size);
+
           // Add to bin
           if (size > maxDisks && bindex >= this.desiredBin) {
             maxDisks = size;
@@ -193,14 +198,14 @@ public class BinnedBasicExperiment implements Experiment {
   }
 
   public Boolean perform() {
-    final FileRenderer display = new FileRenderer(Main.gfxConfig);
+    // final ExperimentRender display = new AnimatedRenderer(Main.gfxConfig);
 
     if (Main.gfxConfig.generateImages) {
-      display.setTransmitters(this.config.transmitters);
+      this.render.setTransmitters(this.config.transmitters);
 
       final String saveName = this.saveDirectory + File.separator + "1000";
-      Main.saveImage(display, saveName);
-      display.clear();
+      Main.saveImage(this.render, saveName);
+      this.render.clear();
 
     }
 
@@ -217,8 +222,16 @@ public class BinnedBasicExperiment implements Experiment {
     log.info("[" + this.config.trialNumber + "] Generated " + disks.size()
         + " disks.");
 
-    Collection<Point2D> startingPoints = BinnedBasicExperiment
-        .generateSolutionPoints(disks, this.config.transmitters);
+    float minX = 0;
+    float maxX = Main.config.universeWidth;
+    float minY = 0;
+    float maxY = Main.config.universeHeight;
+
+    float random = Main.config.isRandomized() ? ((Main.config.universeWidth+Main.config.universeHeight)/2)*0.01f:0f;
+    
+    Collection<Point2D> startingPoints = BinnedRecurGridExperiment
+        .generateSolutionPoints(minX, maxX, minY, maxY,random,
+            this.config.transmitters);
     log.info(String.format("[%d] Generated %,d solution points.\n",
         this.config.trialNumber, startingPoints.size()));
 
@@ -240,101 +253,136 @@ public class BinnedBasicExperiment implements Experiment {
     this.binner.set(startingPoints, 1);
 
     int highestBindex = 0;
-    while (m < this.config.numReceivers && !disks.isEmpty()) {
+    receiverLoop: while (m < this.config.numReceivers && !disks.isEmpty()) {
 
-      this.binner.printBins();
+      
       log.info("[" + this.config.trialNumber
           + "] Calculating position for receiver " + (m + 1) + ".");
-
-      Set<Point2D> thePoints = this.binner.getMaxBin();
-
-      if (thePoints == null) {
-        log.info("No more points available in the bins.");
-        break;
-      }
-
-      final int numTasks = Main.config.numThreads;
-      final int numPoints = thePoints.size();
-      final int pointsPerTask = (numPoints / numTasks) + 1;
-      final long numComparisons = disks.size() * (long) numPoints;
-
-      final Collection<SolutionCheckTask> tasks = new LinkedList<BinnedBasicExperiment.SolutionCheckTask>();
-      final Iterator<Point2D> pointIter = thePoints.iterator();
-      SolutionCheckTask task = new SolutionCheckTask();
-      task.solutionPoints = new LinkedList<Point2D>();
-      task.disks = disks;
-      task.desiredBin = highestBindex;
-      task.binner = this.binner;
-      // task.parent = this;
-      tasks.add(task);
-      for (int i = 0; pointIter.hasNext(); ++i) {
-        task.solutionPoints.add(pointIter.next());
-        pointIter.remove();
-        if (i == pointsPerTask) {
-          i = 0;
-          task = new SolutionCheckTask();
-          task.solutionPoints = new LinkedList<Point2D>();
-          task.disks = disks;
-          task.binner = this.binner;
-          task.desiredBin = highestBindex;
-          // task.parent = this;
-          tasks.add(task);
-        }
-      }
-      int sumTasks = 0;
-      for (final SolutionCheckTask t : tasks) {
-        log.info(String.format("Task (%,d)", t.solutionPoints.size()));
-        sumTasks += t.solutionPoints.size();
-      }
-
-      log.info(String.format("Divided %,d/%,d points.\n", sumTasks, numPoints));
-      final long start = System.currentTimeMillis();
       Receiver maxReceiver = null;
-      try {
-        final List<Future<Receiver>> solutions = this.workers.invokeAll(tasks);
-
-        for (final Future<Receiver> future : solutions) {
-          if (future.isCancelled() || !future.isDone()) {
-            log.error("One of the tasks was cancelled! Double-check the code!");
-            return Boolean.FALSE;
-          }
-          try {
-            final Receiver r = future.get();
-            if (r == null) {
-              continue;
-            }
-            if (maxReceiver == null
-                || r.coveringDisks.size() > maxReceiver.coveringDisks.size()) {
-              highestBindex = this.binner.getBindex(r.coveringDisks.size());
-              maxReceiver = r;
-            }
-          } catch (final ExecutionException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-          }
+      int previousMaxScore = 0;
+      recursiveLoop: do {
+        this.binner.printBins();
+       
+        if (maxReceiver != null) {
+          previousMaxScore = maxReceiver.coveringDisks.size();
         }
 
-      } catch (final InterruptedException e) {
-        e.printStackTrace();
-      }
-      final long duration = System.currentTimeMillis() - start;
-      log.info(String.format("Computed %,d comparisons in %,dms.\n",
-          numComparisons, duration));
+        Set<Point2D> thePoints = this.binner.getMaxBin();
 
-      if (maxReceiver == null) {
-        if (highestBindex == 0) {
+        if (thePoints == null) {
+          log.info("No more points available in the bins.");
           break;
         }
-        highestBindex = this.binner.getMaxBindex();
-        continue;
-      }
 
-      if (highestBindex == 0) {
-        int max = maxReceiver.coveringDisks.size();
-        if (max > this.minRebinValue) {
-          this.binner.rebin(1, max / 2);
+        final int numTasks = Main.config.numThreads;
+        final int numPoints = thePoints.size();
+        final int pointsPerTask = (numPoints / numTasks) + 1;
+        final long numComparisons = disks.size() * (long) numPoints;
+
+        final Collection<SolutionCheckTask> tasks = new LinkedList<BinnedRecurGridExperiment.SolutionCheckTask>();
+        final Iterator<Point2D> pointIter = thePoints.iterator();
+        SolutionCheckTask task = new SolutionCheckTask();
+        task.solutionPoints = new LinkedList<Point2D>();
+        task.disks = disks;
+        task.desiredBin = highestBindex;
+        task.binner = this.binner;
+        // task.parent = this;
+        tasks.add(task);
+        for (int i = 0; pointIter.hasNext(); ++i) {
+          task.solutionPoints.add(pointIter.next());
+          pointIter.remove();
+          if (i == pointsPerTask) {
+            i = 0;
+            task = new SolutionCheckTask();
+            task.solutionPoints = new LinkedList<Point2D>();
+            task.disks = disks;
+            task.binner = this.binner;
+            task.desiredBin = highestBindex;
+            // task.parent = this;
+            tasks.add(task);
+          }
         }
-      }
+        int sumTasks = 0;
+        for (final SolutionCheckTask t : tasks) {
+          log.info(String.format("Task (%,d)", t.solutionPoints.size()));
+          sumTasks += t.solutionPoints.size();
+        }
+
+        log.info(String
+            .format("Divided %,d/%,d points.\n", sumTasks, numPoints));
+        final long start = System.currentTimeMillis();
+
+        try {
+          final List<Future<Receiver>> solutions = this.workers
+              .invokeAll(tasks);
+
+          for (final Future<Receiver> future : solutions) {
+            if (future.isCancelled() || !future.isDone()) {
+              log.error("One of the tasks was cancelled! Double-check the code!");
+              return Boolean.FALSE;
+            }
+            try {
+              final Receiver r = future.get();
+              if (r == null) {
+                log.warn("No receiver returned.");
+                continue;
+              }
+              if (maxReceiver == null
+                  || r.coveringDisks.size() > maxReceiver.coveringDisks.size()) {
+                highestBindex = this.binner.getBindex(r.coveringDisks.size());
+                maxReceiver = r;
+              }
+            } catch (final ExecutionException e) {
+              // TODO Auto-generated catch block
+              e.printStackTrace();
+            }
+          }
+
+        } catch (final InterruptedException e) {
+          e.printStackTrace();
+        }
+        final long duration = System.currentTimeMillis() - start;
+        log.info(String.format("Computed %,d comparisons in %,dms.\n",
+            numComparisons, duration));
+
+        if (maxReceiver == null) {
+          if (highestBindex == 0) {
+            break receiverLoop;
+          }
+          highestBindex = this.binner.getMaxBindex();
+          continue recursiveLoop;
+        }
+
+        log.info("Max receiver score: {}", maxReceiver.coveringDisks.size());
+
+        if (highestBindex == 0) {
+          int max = maxReceiver.coveringDisks.size();
+          if (max > this.minRebinValue) {
+            this.binner.rebin(1, max / 2);
+          }
+        }
+
+        if(previousMaxScore == 0 || maxReceiver.coveringDisks.size() != previousMaxScore){
+        // Try again, this time digging deeper around the maximum area.
+        float width = (maxX - minX) / 4;
+        float height = (maxY - minY) / 4;
+        minX = (float) maxReceiver.getX() - width;
+        maxX = (float) maxReceiver.getX() + width;
+        minY = (float) maxReceiver.getY() - height;
+        maxY = (float) maxReceiver.getY() + height;
+        highestBindex = this.binner.getBindex(maxReceiver.coveringDisks.size());
+        random = Main.config.isRandomized() ? ((width+height)/2)*0.01f:0f;
+        this.binner.putAll(this.generateSolutionPoints(minX, maxX, minY, maxY
+            ,random,this.config.transmitters), maxReceiver.coveringDisks.size());
+        }
+        
+      } while (previousMaxScore == 0
+          || maxReceiver.coveringDisks.size() != previousMaxScore);
+
+      minX = 0;
+      maxX = Main.config.universeWidth;
+      minY = 0;
+      maxY = Main.config.universeHeight;
 
       // Add the newest receiver and remove newly covered points and disks
       receivers.add(maxReceiver);
@@ -371,18 +419,18 @@ public class BinnedBasicExperiment implements Experiment {
       final float captureRatio = (capturedDisks / totalCaptureDisks);
       // Debugging stuff
       if (Main.gfxConfig.generateImages) {
-        display.setTransmitters(this.config.transmitters);
-        display.setRankedSolutionPoints(this.binner.getBins(),
+        this.render.setTransmitters(this.config.transmitters);
+        this.render.setRankedSolutionPoints(this.binner.getBins(),
             this.binner.getBinMins());
 
         // display.setSolutionPoints(this.binner.getMaxBin());
-        // display.setCaptureDisks(disks);
-        display.setReceiverPoints(receivers);
+        this.render.setCaptureDisks(disks);
+        this.render.setReceiverPoints(receivers);
 
         final String saveName = String.format(this.saveDirectory
             + File.separator + "1%03d", (m + 1));
-        Main.saveImage(display, saveName);
-        display.clear();
+        Main.saveImage(this.render, saveName);
+        this.render.clear();
 
       }
 
@@ -414,44 +462,30 @@ public class BinnedBasicExperiment implements Experiment {
 
   }
 
-  private static Collection<Point2D> generateSolutionPoints(
-      final Collection<CaptureDisk> disks,
+  private static Collection<Point2D> generateSolutionPoints(final float minX,
+      final float maxX, final float minY, final float maxY, final float random,
       final Collection<Transmitter> transmitters) {
 
+    log.info(String.format(
+        "Generating [(%,.2f, %,.2f)x(%,.2f, %,.2f)] dense: %,.1f, random: %,.2f",
+        minX, maxX, minY, maxY, Main.config.getGridDensity(),random));
+
+    
     final Collection<Point2D> solutionPoints = new HashSet<Point2D>();
+    float density = Main.config.getGridDensity();
+    float xStep = (maxX - minX) / density;
+    float yStep = (maxY - minY) / density;
 
-    // Add intersection of all capture disks as solutions
-    for (final CaptureDisk d1 : disks) {
-      boolean hadIntersection = false;
-      for (final CaptureDisk d2 : disks) {
-        final Collection<Point2D> intersections = Main.generateIntersections(
-            d1, d2);
-        if (intersections != null && !intersections.isEmpty()) {
-          for (final Point2D p : intersections) {
-            if (BinnedBasicExperiment.checkPointInRange(p, transmitters)) {
-              hadIntersection = true;
-              solutionPoints.add(p);
-            }
-          }
+    // Build a grid assuming some density of points per unit-square
+
+    for (float xIndex = minX; xIndex <= maxX; xIndex += xStep) {
+      for (float yIndex = minY; yIndex <= maxY; yIndex += yStep) {
+        Point2D.Float pnt = new Point2D.Float(xIndex + (float)(Main.rand.nextBoolean() ? (Main.rand.nextDouble()*random) : (-Main.rand.nextDouble()*random)), yIndex + (float)(Main.rand.nextBoolean() ? (Main.rand.nextDouble()*random) : (-Main.rand.nextDouble()*random)));
+        if (BinnedRecurGridExperiment.checkPointInRange(pnt, transmitters)) {
+          solutionPoints.add(pnt);
         }
-      }// End inner disk
-
-      /*
-       * Skip the center point if there was an intersection or if the center is
-       * outside the "universe".
-       */
-
-      if (hadIntersection || d1.disk.getCenterX() < 0
-          || d1.disk.getCenterX() >= Main.config.universeWidth
-          || d1.disk.getCenterY() < 0
-          || d1.disk.getCenterY() > Main.config.universeHeight) {
-        continue;
       }
-      final Point2D.Float center = new Point2D.Float(
-          (float) d1.disk.getCenterX(), (float) d1.disk.getCenterY());
-      if (BinnedBasicExperiment.checkPointInRange(center, transmitters)) {
-        solutionPoints.add(center);
-      }
+
     }
 
     return solutionPoints;

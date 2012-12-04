@@ -36,11 +36,15 @@
        * "binned" - faster algorithm uses binning of scores to reduce 
             computation. 
        * "grid" - produces a grid of points to test rather than looking
-                  at circle intersections. -->
+                  at circle intersections. 
+       * "recursive" - produces a grid of points, but uses recursion to
+                       try to find a "good" maximum.  -->
   <experimentType>binned</experimentType>
-  <!-- Number of points per "square unit." Only applicable for "grid"
-       experiment types. -->
+  <!-- Number of points per "square unit" (grid) or for the entire "universe"
+       (recursive).  -->
   <gridDensity>25</gridDensity>
+  <!-- Flag for randomizing solution points (when auto-generating).-->
+  <randomized>false</randomized>
   <!-- Graphics rendering configuration filename. -->
   <renderConfig>src/main/resources/graphics.xml</renderConfig>
 </edu.rutgers.winlab.junsim.Config>

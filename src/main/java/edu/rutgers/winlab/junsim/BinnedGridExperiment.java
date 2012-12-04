@@ -82,6 +82,8 @@ public class BinnedGridExperiment implements Experiment {
    * Don't rebin if the max is below this value.
    */
   private int minRebinValue = 2;
+  
+  private final FileRenderer render;
 
   /**
    * Creates a new experiment task with the specific configuration, global stats
@@ -105,7 +107,7 @@ public class BinnedGridExperiment implements Experiment {
         Long.valueOf(Main.config.randomSeed),
         Integer.valueOf(this.config.numTransmitters),
         Integer.valueOf(this.config.trialNumber));
-
+    this.render = new FileRenderer(Main.gfxConfig);
   }
 
   /**
@@ -168,6 +170,7 @@ public class BinnedGridExperiment implements Experiment {
 
         if (size > 0) {
           int bindex = this.binner.put(p, size);
+          
           // Add to bin
           if (size > maxDisks && bindex >= this.desiredBin) {
             maxDisks = size;
@@ -193,17 +196,17 @@ public class BinnedGridExperiment implements Experiment {
   }
 
   public Boolean perform() {
-    final FileRenderer display = new FileRenderer(Main.gfxConfig);
+//    final ExperimentRender display = new AnimatedRenderer(Main.gfxConfig);
     
     
     if (Main.gfxConfig.generateImages) {
-      display.setTransmitters(this.config.transmitters);
+      this.render.setTransmitters(this.config.transmitters);
     
 
       final String saveName = this.saveDirectory
           + File.separator + "1000";
-      Main.saveImage(display, saveName);
-      display.clear();
+      Main.saveImage( this.render, saveName);
+      this.render.clear();
 
     }
 
@@ -376,18 +379,18 @@ public class BinnedGridExperiment implements Experiment {
       final float captureRatio = (capturedDisks / totalCaptureDisks);
       // Debugging stuff
       if (Main.gfxConfig.generateImages) {
-        display.setTransmitters(this.config.transmitters);
-        display.setRankedSolutionPoints(this.binner.getBins(),
+        this.render.setTransmitters(this.config.transmitters);
+        this.render.setRankedSolutionPoints(this.binner.getBins(),
             this.binner.getBinMins());
 
         // display.setSolutionPoints(this.binner.getMaxBin());
-         display.setCaptureDisks(disks);
-        display.setReceiverPoints(receivers);
+        this.render.setCaptureDisks(disks);
+        this.render.setReceiverPoints(receivers);
 
         final String saveName = String.format(this.saveDirectory
             + File.separator + "1%03d", (m + 1));
-        Main.saveImage(display, saveName);
-        display.clear();
+        Main.saveImage( this.render, saveName);
+        this.render.clear();
 
       }
 

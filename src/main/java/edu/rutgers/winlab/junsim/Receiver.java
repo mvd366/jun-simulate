@@ -91,7 +91,7 @@ public class Receiver extends Point2D.Float implements Drawable {
 
       g.setColor(origColor);
       g.draw(triangle);
-      g.drawString("R" + coverageCount, (int) (this.getX() * scaleX + size),
+      g.drawString("R" + this.coveringDisks.size()+"/"+coverageCount, (int) (this.getX() * scaleX + size),
           (int) (this.getY() * scaleY - size));
     }
     g.setColor(origColor);

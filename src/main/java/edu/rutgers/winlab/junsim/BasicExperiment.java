@@ -178,7 +178,16 @@ public class BasicExperiment implements Experiment {
   public Boolean perform() {
     final FileRenderer display = new FileRenderer(Main.gfxConfig);
 
-   
+    if (Main.gfxConfig.generateImages) {
+      display.setTransmitters(this.config.transmitters);
+    
+
+      final String saveName = this.saveDirectory
+          + File.separator + "1000";
+      Main.saveImage( display, saveName);
+      display.clear();
+
+    }
 
     final Collection<CaptureDisk> disks = new HashSet<CaptureDisk>();
     // Compute all possible capture disks
@@ -299,6 +308,7 @@ public class BasicExperiment implements Experiment {
       // calculations
       for (final CaptureDisk disk : maxReceiver.coveringDisks) {
         capturedCollisions.get(disk.t1).add(disk.t2);
+        disk.t1.addCoveredDisk(disk);
       }
       disks.removeAll(maxReceiver.coveringDisks);
 

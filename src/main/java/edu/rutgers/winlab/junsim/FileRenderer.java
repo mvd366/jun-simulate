@@ -105,7 +105,7 @@ public class FileRenderer {
       g2.translate(marginX / 2, 0);
     }
     // Tall-screen
-    else if (displayRatio < 0.999f) {
+    else { //if (displayRatio < 0.999f) {
       scale = width / Main.config.universeWidth;
       int marginY = height - (int) (Main.config.universeHeight * scale);
       g2.translate(0, marginY / 2);

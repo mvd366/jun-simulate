@@ -182,7 +182,9 @@ public class Main {
         task = new BinnedBasicExperiment(conf, stats, workers);
       } else if ("grid".equalsIgnoreCase(config.experimentType)) {
         task = new BinnedGridExperiment(conf, stats, workers);
-      } else {
+      } else if("recursive".equalsIgnoreCase(config.experimentType)){
+        task = new BinnedRecurGridExperiment(conf, stats, workers);
+      }else {
         task = new BasicExperiment(conf, stats, workers);
       }
       task.perform();

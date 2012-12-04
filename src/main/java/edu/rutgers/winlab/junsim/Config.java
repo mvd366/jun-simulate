@@ -98,9 +98,14 @@ public class Config {
 
   /**
    * Type of experiment to run.
-   * "basic", "binned"
+   * "basic", "binned", "grid", or "recursive"
    */
   String experimentType = "basic";
+  
+  /**
+   * Whether or not to randomize grid points.
+   */
+  boolean randomized=false;
 
   public int getNumTransmitters() {
     return numTransmitters;
@@ -188,5 +193,13 @@ public class Config {
 
   public void setRenderConfig(String renderConfig) {
     this.renderConfig = renderConfig;
+  }
+
+  public boolean isRandomized() {
+    return randomized;
+  }
+
+  public void setRandomized(boolean randomized) {
+    this.randomized = randomized;
   }
 }
