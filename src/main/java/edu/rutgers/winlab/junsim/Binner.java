@@ -97,6 +97,10 @@ public class Binner {
     return null;
   }
   
+  /**
+   * Returns the index of the highest-ranked non-empty bin.
+   * @return the index of the top non-empty bin.
+   */
   public int getMaxBindex(){
     int bindex = this.bins.length-1;
     for(; bindex > 0; --bindex){

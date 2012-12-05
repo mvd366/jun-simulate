@@ -27,7 +27,7 @@ public class ColorSet {
   private static final Color BACKGROUND_COLOR = Color.WHITE;
   private static final Color FONT_COLOR = Color.BLACK;
 
-  public static final float[] RING_LIMITS = new float[] { 0.25f, 0.5f, 0.75f };
+  public static final float[] RING_LIMITS = new float[] { 0.25f, 0.5f, 0.9f };
 
   public static final Color[] RING_COLORS = new Color[] { Color.LIGHT_GRAY,
       Color.RED, Color.ORANGE, Color.GREEN };

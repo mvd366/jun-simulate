@@ -227,10 +227,11 @@ public class BinnedRecurGridExperiment implements Experiment {
     float minY = 0;
     float maxY = Main.config.universeHeight;
 
-    float random = Main.config.isRandomized() ? ((Main.config.universeWidth+Main.config.universeHeight)/2)*0.01f:0f;
-    
+    float random = Main.config.isRandomized() ? ((Main.config.universeWidth + Main.config.universeHeight) / 2) * 0.01f
+        : 0f;
+
     Collection<Point2D> startingPoints = BinnedRecurGridExperiment
-        .generateSolutionPoints(minX, maxX, minY, maxY,random,
+        .generateSolutionPoints(minX, maxX, minY, maxY, random,
             this.config.transmitters);
     log.info(String.format("[%d] Generated %,d solution points.\n",
         this.config.trialNumber, startingPoints.size()));
@@ -255,24 +256,37 @@ public class BinnedRecurGridExperiment implements Experiment {
     int highestBindex = 0;
     receiverLoop: while (m < this.config.numReceivers && !disks.isEmpty()) {
 
-      
       log.info("[" + this.config.trialNumber
           + "] Calculating position for receiver " + (m + 1) + ".");
       Receiver maxReceiver = null;
       int previousMaxScore = 0;
+      HashSet<Point2D> alreadyChecked = new HashSet<Point2D>();
+      HashSet<Point2D> maxChecked = new HashSet<Point2D>();
       recursiveLoop: do {
         this.binner.printBins();
-       
+
         if (maxReceiver != null) {
           previousMaxScore = maxReceiver.coveringDisks.size();
         }
-
-        Set<Point2D> thePoints = this.binner.getMaxBin();
-
-        if (thePoints == null) {
+        log.info("Using bin {}",this.binner.getMaxBindex());
+        Set<Point2D> possiblePoints = this.binner.getMaxBin();
+        if (possiblePoints == null) {
           log.info("No more points available in the bins.");
           break;
         }
+        Set<Point2D> thePoints = new HashSet<Point2D>();
+        for(Iterator<Point2D> iter = possiblePoints.iterator(); iter.hasNext();){
+          Point2D pnt = iter.next();
+          iter.remove();
+          if (alreadyChecked.contains(pnt)) {
+            maxChecked.add(pnt);
+          }else{
+            thePoints.add(pnt);
+          }
+          
+        }
+
+       
 
         final int numTasks = Main.config.numThreads;
         final int numPoints = thePoints.size();
@@ -289,7 +303,9 @@ public class BinnedRecurGridExperiment implements Experiment {
         // task.parent = this;
         tasks.add(task);
         for (int i = 0; pointIter.hasNext(); ++i) {
-          task.solutionPoints.add(pointIter.next());
+          Point2D pnt = pointIter.next();
+          task.solutionPoints.add(pnt);
+          alreadyChecked.add(pnt);
           pointIter.remove();
           if (i == pointsPerTask) {
             i = 0;
@@ -346,12 +362,19 @@ public class BinnedRecurGridExperiment implements Experiment {
             numComparisons, duration));
 
         if (maxReceiver == null) {
+          
           if (highestBindex == 0) {
             break receiverLoop;
           }
+          
           highestBindex = this.binner.getMaxBindex();
+          alreadyChecked.clear();
+          maxChecked.clear();
           continue recursiveLoop;
         }
+
+        alreadyChecked.remove(maxReceiver);
+        
 
         log.info("Max receiver score: {}", maxReceiver.coveringDisks.size());
 
@@ -362,23 +385,31 @@ public class BinnedRecurGridExperiment implements Experiment {
           }
         }
 
-        if(previousMaxScore == 0 || maxReceiver.coveringDisks.size() != previousMaxScore){
-        // Try again, this time digging deeper around the maximum area.
-        float width = (maxX - minX) / 4;
-        float height = (maxY - minY) / 4;
-        minX = (float) maxReceiver.getX() - width;
-        maxX = (float) maxReceiver.getX() + width;
-        minY = (float) maxReceiver.getY() - height;
-        maxY = (float) maxReceiver.getY() + height;
-        highestBindex = this.binner.getBindex(maxReceiver.coveringDisks.size());
-        random = Main.config.isRandomized() ? ((width+height)/2)*0.01f:0f;
-        this.binner.putAll(this.generateSolutionPoints(minX, maxX, minY, maxY
-            ,random,this.config.transmitters), maxReceiver.coveringDisks.size());
+        if (previousMaxScore == 0
+            || maxReceiver.coveringDisks.size() != previousMaxScore) {
+          // Try again, this time digging deeper around the maximum area.
+          float width = (maxX - minX) / 4;
+          float height = (maxY - minY) / 4;
+          minX = (float) maxReceiver.getX() - width;
+          maxX = (float) maxReceiver.getX() + width;
+          minY = (float) maxReceiver.getY() - height;
+          maxY = (float) maxReceiver.getY() + height;
+          highestBindex = this.binner.getBindex(maxReceiver.coveringDisks
+              .size());
+          random = Main.config.isRandomized() ? ((width + height) / 2) * 0.01f
+              : 0f;
+          this.binner.putAll(this.generateSolutionPoints(minX, maxX, minY,
+              maxY, random, this.config.transmitters),
+              maxReceiver.coveringDisks.size());
         }
-        
+
       } while (previousMaxScore == 0
           || maxReceiver.coveringDisks.size() != previousMaxScore);
 
+      log.info(String.format("Adding %,d max points, instead of %,d total.", maxChecked.size(),alreadyChecked.size()));
+      
+      this.binner.putAll(maxChecked,maxReceiver.coveringDisks.size());
+      
       minX = 0;
       maxX = Main.config.universeWidth;
       minY = 0;
@@ -466,11 +497,11 @@ public class BinnedRecurGridExperiment implements Experiment {
       final float maxX, final float minY, final float maxY, final float random,
       final Collection<Transmitter> transmitters) {
 
-    log.info(String.format(
-        "Generating [(%,.2f, %,.2f)x(%,.2f, %,.2f)] dense: %,.1f, random: %,.2f",
-        minX, maxX, minY, maxY, Main.config.getGridDensity(),random));
+    log.info(String
+        .format(
+            "Generating [(%,.2f, %,.2f)x(%,.2f, %,.2f)] dense: %,.1f, random: %,.2f",
+            minX, maxX, minY, maxY, Main.config.getGridDensity(), random));
 
-    
     final Collection<Point2D> solutionPoints = new HashSet<Point2D>();
     float density = Main.config.getGridDensity();
     float xStep = (maxX - minX) / density;
@@ -480,7 +511,19 @@ public class BinnedRecurGridExperiment implements Experiment {
 
     for (float xIndex = minX; xIndex <= maxX; xIndex += xStep) {
       for (float yIndex = minY; yIndex <= maxY; yIndex += yStep) {
-        Point2D.Float pnt = new Point2D.Float(xIndex + (float)(Main.rand.nextBoolean() ? (Main.rand.nextDouble()*random) : (-Main.rand.nextDouble()*random)), yIndex + (float)(Main.rand.nextBoolean() ? (Main.rand.nextDouble()*random) : (-Main.rand.nextDouble()*random)));
+        final float x = xIndex
+            + (float) (Main.rand.nextBoolean() ? (Main.rand.nextDouble() * random)
+                : (-Main.rand.nextDouble() * random));
+        if(x < 0 || x > Main.config.universeWidth){
+          continue;
+        }
+        final float y = yIndex
+            + (float) (Main.rand.nextBoolean() ? (Main.rand.nextDouble() * random)
+                : (-Main.rand.nextDouble() * random));
+        if(y < 0 || y > Main.config.universeHeight){
+          continue;
+        }
+        Point2D.Float pnt = new Point2D.Float(x, y);
         if (BinnedRecurGridExperiment.checkPointInRange(pnt, transmitters)) {
           solutionPoints.add(pnt);
         }
