@@ -214,7 +214,7 @@ public class BasicExperiment implements Experiment {
     int m = 0;
 
     // Keep going while there are either solution points or capture disks
-    final Collection<Receiver> receivers = new LinkedList<Receiver>();
+//    final Collection<Receiver> receivers = new LinkedList<Receiver>();
     // Keep track of which collisions are captured so that packet loss
     // probabilities can be quickly calculated
     final ConcurrentHashMap<Transmitter, HashSet<Transmitter>> capturedCollisions = new ConcurrentHashMap<Transmitter, HashSet<Transmitter>>();
@@ -302,7 +302,7 @@ public class BasicExperiment implements Experiment {
       }
 
       // Add the newest receiver and remove newly covered points and disks
-      receivers.add(maxReceiver);
+      this.config.receivers.add(maxReceiver);
       solutionPoints.remove(maxReceiver);
       // Add captures to each transmitter's capture set for collision
       // calculations
@@ -339,7 +339,7 @@ public class BasicExperiment implements Experiment {
         display.setTransmitters(this.config.transmitters);
         display.setSolutionPoints(solutionPoints);
         display.setCaptureDisks(disks);
-        display.setReceiverPoints(receivers);
+        display.setReceiverPoints(this.config.receivers);
 
         final String saveName = String.format(this.saveDirectory + File.separator
             + "1%03d", (m + 1));

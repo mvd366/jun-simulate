@@ -23,6 +23,7 @@ import java.awt.geom.Point2D;
 import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -40,6 +41,9 @@ import java.util.concurrent.TimeUnit;
 import javax.imageio.ImageIO;
 import javax.swing.JFrame;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.thoughtworks.xstream.XStream;
 
 /**
@@ -49,6 +53,7 @@ import com.thoughtworks.xstream.XStream;
  */
 public class Main {
 
+  private static final Logger log = LoggerFactory.getLogger(Main.class);
   /**
    * Configuration file for the application.
    */
@@ -149,6 +154,39 @@ public class Main {
 
     // Output file (CSV) for stats
     PrintWriter fileWriter = new PrintWriter(new FileWriter(outputFile));
+
+    PrintWriter receiverWriter = new PrintWriter(new FileWriter(
+        config.getReceiversFile()));
+
+    boolean generateTransmitters = true;
+    Collection<Transmitter> transmitters = new LinkedList<Transmitter>();
+    File transmittersFile = null;
+    if (config.getTransmittersFile() != null
+        && config.getTransmittersFile().trim().length() > 0) {
+      transmittersFile = new File(config.getTransmittersFile().trim());
+      if (transmittersFile.exists() && transmittersFile.canRead()) {
+        BufferedReader txReader = new BufferedReader(new FileReader(
+            transmittersFile));
+        String line = null;
+        while ((line = txReader.readLine()) != null) {
+          String[] components = line.split("\\s+");
+          if(components.length < 2){
+            log.info("Skipping line \"{}\".",line);
+            continue;
+          }
+          float xPos = Float.parseFloat(components[0]);
+          float yPos = Float.parseFloat(components[1]);
+          final Transmitter txer = new Transmitter();
+          txer.x = xPos;
+          txer.y = yPos;
+          transmitters.add(txer);
+        }
+      }
+      if(!transmitters.isEmpty()){
+        generateTransmitters = false;
+      }
+    }
+
     ExperimentStats[] stats = new ExperimentStats[Main.config.numReceivers];
     for (int i = 0; i < stats.length; ++i) {
       stats[i] = new ExperimentStats();
@@ -159,35 +197,51 @@ public class Main {
     fileWriter
         .println("# Tx, # Rx, Min % Covered, Med. % Covered, Mean % Covered, 95% Coverage, Max % Covered, Min Contention, Med. Contention, Mean Contention, 95% Contention, Max Contention");
 
-    
-    
-    
-    
     // Iterate through some number of trials
     for (int trialNumber = 0; trialNumber < Main.config.numTrials; ++trialNumber) {
 
       int numTransmitters = Main.config.numTransmitters;
       // Randomly generate transmitter locations
-      Collection<Transmitter> transmitters = Main
-          .generateTransmitterLocations(numTransmitters);
+      if (generateTransmitters) {
+        transmitters = Main.generateTransmitterLocations(numTransmitters);
+        PrintWriter txWriter = new PrintWriter(new FileWriter(Main.config.getTransmittersFile()));
+        for(Transmitter txer : transmitters){
+          txWriter.printf("%.2f %.2f\n", txer.x,txer.y);
+        }
+        txWriter.flush();
+        txWriter.close();
+      }else {
+        Main.generateTransmitterLocations(numTransmitters);
+      }
 
       TaskConfig conf = new TaskConfig();
       conf.trialNumber = trialNumber;
       conf.numTransmitters = numTransmitters;
       conf.transmitters = transmitters;
       conf.numReceivers = Main.config.numReceivers;
+      conf.receivers = new LinkedList<Receiver>();
 
       Experiment task;
       if ("binned".equalsIgnoreCase(config.experimentType)) {
         task = new BinnedBasicExperiment(conf, stats, workers);
       } else if ("grid".equalsIgnoreCase(config.experimentType)) {
         task = new BinnedGridExperiment(conf, stats, workers);
-      } else if("recursive".equalsIgnoreCase(config.experimentType)){
+      } else if ("recursive".equalsIgnoreCase(config.experimentType)) {
         task = new BinnedRecurGridExperiment(conf, stats, workers);
-      }else {
+      } else {
         task = new BasicExperiment(conf, stats, workers);
       }
       task.perform();
+      String prefix = "";
+      if(Main.config.numTrials > 1){
+        prefix = Integer.valueOf(trialNumber).toString();
+      }
+      PrintWriter rxWriter = new PrintWriter(new FileWriter(prefix+Main.config.getReceiversFile()));
+      for(Receiver rxer : conf.receivers){
+        rxWriter.printf("%.2f %.2f %d\n",rxer.x, rxer.y, rxer.coveringDisks.size());
+      }
+      rxWriter.flush();
+      rxWriter.close();
     } // End number of trials
 
     workers.shutdown();
@@ -290,7 +344,7 @@ public class Main {
     captureDisk.disk.center.y = (float) centerY;
 
     t1.addDisk(captureDisk);
-    
+
     return captureDisk;
   }
 
@@ -355,13 +409,15 @@ public class Main {
     }
     return points;
   }
-  
+
   public static void saveImage(final FileRenderer display, final String fileName) {
     final long start = System.currentTimeMillis();
     final File imageFile = new File(fileName + ".png");
     System.out.printf("Rendering \"%s\".\n", imageFile);
     final BufferedImage img = new BufferedImage(Main.gfxConfig.renderWidth,
-        Main.gfxConfig.renderHeight, gfxConfig.isUseColorMode() ?  BufferedImage.TYPE_INT_RGB : BufferedImage.TYPE_BYTE_GRAY);
+        Main.gfxConfig.renderHeight,
+        gfxConfig.isUseColorMode() ? BufferedImage.TYPE_INT_RGB
+            : BufferedImage.TYPE_BYTE_GRAY);
     final Graphics g = img.createGraphics();
 
     display.render(g, img.getWidth(), img.getHeight());

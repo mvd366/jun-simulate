@@ -103,6 +103,17 @@ public class Config {
   String experimentType = "basic";
   
   /**
+   * The filename of the list of transmitter locations.  If not provided, non-existent, or
+   * empty, it will be generated randomly.
+   */
+  String transmittersFile = "transmitters.txt";
+  
+  /**
+   * The filename for the receivers output.
+   */
+  String receiversFile = "receivers.ssv";
+  
+  /**
    * Whether or not to randomize grid points.
    */
   boolean randomized=false;
@@ -201,5 +212,21 @@ public class Config {
 
   public void setRandomized(boolean randomized) {
     this.randomized = randomized;
+  }
+
+  public String getTransmittersFile() {
+    return transmittersFile;
+  }
+
+  public void setTransmittersFile(String transmittersFile) {
+    this.transmittersFile = transmittersFile;
+  }
+
+  public String getReceiversFile() {
+    return receiversFile;
+  }
+
+  public void setReceiversFile(String receiversFile) {
+    this.receiversFile = receiversFile;
   }
 }

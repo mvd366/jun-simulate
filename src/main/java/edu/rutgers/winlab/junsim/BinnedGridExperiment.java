@@ -234,7 +234,7 @@ public class BinnedGridExperiment implements Experiment {
     int m = 0;
 
     // Keep going while there are either solution points or capture disks
-    final Collection<Receiver> receivers = new LinkedList<Receiver>();
+//    final Collection<Receiver> receivers = new LinkedList<Receiver>();
     // Keep track of which collisions are captured so that packet loss
     // probabilities can be quickly calculated
     final ConcurrentHashMap<Transmitter, HashSet<Transmitter>> capturedCollisions = new ConcurrentHashMap<Transmitter, HashSet<Transmitter>>();
@@ -344,7 +344,7 @@ public class BinnedGridExperiment implements Experiment {
       }
 
       // Add the newest receiver and remove newly covered points and disks
-      receivers.add(maxReceiver);
+      this.config.receivers.add(maxReceiver);
 
       // Add captures to each transmitter's capture set for collision
       // calculations
@@ -385,7 +385,7 @@ public class BinnedGridExperiment implements Experiment {
 
         // display.setSolutionPoints(this.binner.getMaxBin());
         this.render.setCaptureDisks(disks);
-        this.render.setReceiverPoints(receivers);
+        this.render.setReceiverPoints(this.config.receivers);
 
         final String saveName = String.format(this.saveDirectory
             + File.separator + "1%03d", (m + 1));

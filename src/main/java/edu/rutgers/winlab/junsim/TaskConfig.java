@@ -42,5 +42,7 @@ public class TaskConfig {
    */
   int numReceivers;
   
+  Collection<Receiver> receivers;
+  
   
 }

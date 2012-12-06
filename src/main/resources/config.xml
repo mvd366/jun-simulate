@@ -47,5 +47,9 @@
   <randomized>false</randomized>
   <!-- Graphics rendering configuration filename. -->
   <renderConfig>src/main/resources/graphics.xml</renderConfig>
+  <!-- Transmitters list file for either input (if it exists and is non-empty), or output. -->
+  <transmittersFile>transmitters.ssv</transmittersFile>
+  <!-- Receivers list file for output. -->
+  <receiversFile>receivers.ssv</receiversFile>
 </edu.rutgers.winlab.junsim.Config>
 
