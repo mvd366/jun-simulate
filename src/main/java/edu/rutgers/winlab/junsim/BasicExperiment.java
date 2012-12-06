@@ -323,6 +323,7 @@ public class BasicExperiment implements Experiment {
         // itself
         final int num_in_contention = this.config.numTransmitters - 1
             - capturedCollisions.get(txer).size();
+        log.info("{} | {}",this.config.numTransmitters, capturedCollisions.get(txer).size());
         min_contention = Math.min(num_in_contention, min_contention);
         max_contention = Math.max(num_in_contention, max_contention);
         mean_contention += (float) num_in_contention

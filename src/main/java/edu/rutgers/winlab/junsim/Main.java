@@ -158,7 +158,7 @@ public class Main {
     PrintWriter receiverWriter = new PrintWriter(new FileWriter(
         config.getReceiversFile()));
 
-    boolean generateTransmitters = true;
+    
     Collection<Transmitter> transmitters = new LinkedList<Transmitter>();
     File transmittersFile = null;
     if (config.getTransmittersFile() != null
@@ -170,8 +170,8 @@ public class Main {
         String line = null;
         while ((line = txReader.readLine()) != null) {
           String[] components = line.split("\\s+");
-          if(components.length < 2){
-            log.info("Skipping line \"{}\".",line);
+          if (components.length < 2) {
+            log.info("Skipping line \"{}\".", line);
             continue;
           }
           float xPos = Float.parseFloat(components[0]);
@@ -182,16 +182,16 @@ public class Main {
           transmitters.add(txer);
         }
       }
-      if(!transmitters.isEmpty()){
-        generateTransmitters = false;
-      }
+
     }
+    boolean generateTransmitters = transmitters.isEmpty();
 
     ExperimentStats[] stats = new ExperimentStats[Main.config.numReceivers];
     for (int i = 0; i < stats.length; ++i) {
       stats[i] = new ExperimentStats();
       stats[i].numberReceivers = i + 1;
-      stats[i].numberTransmitters = Main.config.numTransmitters;
+      stats[i].numberTransmitters = generateTransmitters ? Main.config.numTransmitters
+          : transmitters.size();
     }
 
     fileWriter
@@ -200,23 +200,24 @@ public class Main {
     // Iterate through some number of trials
     for (int trialNumber = 0; trialNumber < Main.config.numTrials; ++trialNumber) {
 
-      int numTransmitters = Main.config.numTransmitters;
       // Randomly generate transmitter locations
       if (generateTransmitters) {
-        transmitters = Main.generateTransmitterLocations(numTransmitters);
-        PrintWriter txWriter = new PrintWriter(new FileWriter(Main.config.getTransmittersFile()));
-        for(Transmitter txer : transmitters){
-          txWriter.printf("%.2f %.2f\n", txer.x,txer.y);
+        transmitters = Main
+            .generateTransmitterLocations(Main.config.numTransmitters);
+        PrintWriter txWriter = new PrintWriter(new FileWriter(
+            Main.config.getTransmittersFile()));
+        for (Transmitter txer : transmitters) {
+          txWriter.printf("%.2f %.2f\n", txer.x, txer.y);
         }
         txWriter.flush();
         txWriter.close();
-      }else {
-        Main.generateTransmitterLocations(numTransmitters);
+      } else {
+        Main.generateTransmitterLocations(Main.config.numTransmitters);
       }
 
       TaskConfig conf = new TaskConfig();
       conf.trialNumber = trialNumber;
-      conf.numTransmitters = numTransmitters;
+      conf.numTransmitters = transmitters.size();
       conf.transmitters = transmitters;
       conf.numReceivers = Main.config.numReceivers;
       conf.receivers = new LinkedList<Receiver>();
@@ -233,12 +234,14 @@ public class Main {
       }
       task.perform();
       String prefix = "";
-      if(Main.config.numTrials > 1){
+      if (Main.config.numTrials > 1) {
         prefix = Integer.valueOf(trialNumber).toString();
       }
-      PrintWriter rxWriter = new PrintWriter(new FileWriter(prefix+Main.config.getReceiversFile()));
-      for(Receiver rxer : conf.receivers){
-        rxWriter.printf("%.2f %.2f %d\n",rxer.x, rxer.y, rxer.coveringDisks.size());
+      PrintWriter rxWriter = new PrintWriter(new FileWriter(prefix
+          + Main.config.getReceiversFile()));
+      for (Receiver rxer : conf.receivers) {
+        rxWriter.printf("%.2f %.2f %d\n", rxer.x, rxer.y,
+            rxer.coveringDisks.size());
       }
       rxWriter.flush();
       rxWriter.close();
