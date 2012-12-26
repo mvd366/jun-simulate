@@ -51,5 +51,8 @@
   <transmittersFile>transmitters.ssv</transmittersFile>
   <!-- Receivers list file for output. -->
   <receiversFile>receivers.ssv</receiversFile>
+  <!-- The base path for all input/output files (transmitters, receivers,
+       images, statistics). -->
+  <outputBasePath />
 </edu.rutgers.winlab.junsim.Config>
 

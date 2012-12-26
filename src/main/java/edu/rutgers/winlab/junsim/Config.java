@@ -17,8 +17,6 @@
  */
 package edu.rutgers.winlab.junsim;
 
-import com.thoughtworks.xstream.annotations.XStreamOmitField;
-
 /**
  * @author Robert Moore
  */
@@ -112,6 +110,11 @@ public class Config {
    * The filename for the receivers output.
    */
   String receiversFile = "receivers.ssv";
+  
+  /**
+   * The base directory (path) for all output files.
+   */
+  String outputBasePath = "";
   
   /**
    * Whether or not to randomize grid points.
@@ -228,5 +231,13 @@ public class Config {
 
   public void setReceiversFile(String receiversFile) {
     this.receiversFile = receiversFile;
+  }
+
+  public String getOutputBasePath() {
+    return outputBasePath;
+  }
+
+  public void setOutputBasePath(String outputBasePath) {
+    this.outputBasePath = outputBasePath;
   }
 }

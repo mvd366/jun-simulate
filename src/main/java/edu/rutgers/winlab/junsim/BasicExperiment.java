@@ -84,11 +84,11 @@ public class BasicExperiment implements Experiment {
     this.workers = workers;
     this.config = config;
     this.stats = stats;
-    this.saveDirectory = String.format("s%d_t%d_x%d"
+    this.saveDirectory = Main.buildPath(String.format("s%d_t%d_x%d"
         + (Main.config.stripSolutionPoints ? "_S" : ""),
         Long.valueOf(Main.config.randomSeed),
         Integer.valueOf(this.config.numTransmitters),
-        Integer.valueOf(this.config.trialNumber));
+        Integer.valueOf(this.config.trialNumber)));
   }
 
   /**

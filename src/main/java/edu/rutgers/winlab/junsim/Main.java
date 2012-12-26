@@ -142,12 +142,15 @@ public class Main {
    *           if an exception is thrown.
    */
   public static void doSimulation() throws IOException {
-    File outputFile = new File(Main.config.outputFileName);
+    File outputFile = new File(Main.buildPath(Main.config.getOutputFileName()));
     if (!outputFile.exists()) {
+      if(outputFile.getParentFile()!=null){
+        outputFile.getParentFile().mkdirs();
+      }
       outputFile.createNewFile();
     }
     if (!outputFile.canWrite()) {
-      System.err.println("Unable to write to " + Main.config.outputFileName
+      System.err.println("Unable to write to " + outputFile.getName()
           + ". Please check file system permissions.");
       return;
     }
@@ -156,14 +159,14 @@ public class Main {
     PrintWriter fileWriter = new PrintWriter(new FileWriter(outputFile));
 
     PrintWriter receiverWriter = new PrintWriter(new FileWriter(
-        config.getReceiversFile()));
+        Main.buildPath(config.getReceiversFile())));
 
     
     Collection<Transmitter> transmitters = new LinkedList<Transmitter>();
     File transmittersFile = null;
     if (config.getTransmittersFile() != null
         && config.getTransmittersFile().trim().length() > 0) {
-      transmittersFile = new File(config.getTransmittersFile().trim());
+      transmittersFile = new File(Main.buildPath(config.getTransmittersFile().trim()));
       if (transmittersFile.exists() && transmittersFile.canRead()) {
         BufferedReader txReader = new BufferedReader(new FileReader(
             transmittersFile));
@@ -204,8 +207,8 @@ public class Main {
       if (generateTransmitters) {
         transmitters = Main
             .generateTransmitterLocations(Main.config.numTransmitters);
-        PrintWriter txWriter = new PrintWriter(new FileWriter(
-            Main.config.getTransmittersFile()));
+        PrintWriter txWriter = new PrintWriter(new FileWriter(Main.buildPath(
+            Main.config.getTransmittersFile())));
         for (Transmitter txer : transmitters) {
           txWriter.printf("%.2f %.2f\n", txer.x, txer.y);
         }
@@ -237,8 +240,8 @@ public class Main {
       if (Main.config.numTrials > 1) {
         prefix = Integer.valueOf(trialNumber).toString();
       }
-      PrintWriter rxWriter = new PrintWriter(new FileWriter(prefix
-          + Main.config.getReceiversFile()));
+      PrintWriter rxWriter = new PrintWriter(new FileWriter(Main.buildPath(prefix
+          + Main.config.getReceiversFile())));
       for (Receiver rxer : conf.receivers) {
         rxWriter.printf("%.2f %.2f %d\n", rxer.x, rxer.y,
             rxer.coveringDisks.size());
@@ -443,5 +446,19 @@ public class Main {
     g.dispose();
     final long duration = System.currentTimeMillis() - start;
     System.out.printf("Rendering took %,dms.\n", duration);
+  }
+  
+  /**
+   * Builds a pathname for the specified "path" relative path value.  Uses the {@link Config#getOutputBasePath()} value
+   * to prefix the path.
+   * @param path the user-provided path.
+   * @return a combined path using both the configured base path and the provided path.
+   */
+  public static String buildPath(final String path){
+    final String prefix = config.getOutputBasePath().trim();
+    if(prefix.length() > 0){
+      return String.format("%s%s%s",prefix,File.separator,path);
+    }
+    return path;
   }
 }
