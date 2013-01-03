@@ -1,30 +1,28 @@
 /*
  * Copyright (C) 2012 Robert Moore and Rutgers University
  * 
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *  
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *  
- * You should have received a copy of the GNU General Public License along
- * with this program; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ * This program is free software; you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License as published by the Free Software
+ * Foundation; either version 2 of the License, or (at your option) any later
+ * version.
+ * 
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+ * details.
+ * 
+ * You should have received a copy of the GNU General Public License along with
+ * this program; if not, write to the Free Software Foundation, Inc., 51
+ * Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 package edu.rutgers.winlab.junsim;
 
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Vector;
 
 /**
  * @author Robert Moore
- * 
  */
 public class ExperimentStats {
   // # Tx, # Rx, Min % Covered, Med. % Covered, Mean % Covered, Max % Covered,
@@ -36,10 +34,10 @@ public class ExperimentStats {
   // Array that holds statistics for coverages, mean contention, min contention,
   // and max contention.
   List<Float>[] statistics = (List<Float>[]) new List[4];
-  boolean[] sorted = {false, false, false, false};
+  boolean[] sorted = { false, false, false, false };
   // Indices into the above array.
-  private final static int COVERAGE       = 0;
-  private final static int CONTENTION     = 1;
+  private final static int COVERAGE = 0;
+  private final static int CONTENTION = 1;
   private final static int MIN_CONTENTION = 2;
   private final static int MAX_CONTENTION = 3;
 
@@ -63,38 +61,42 @@ public class ExperimentStats {
     }
   }
 
-  private synchronized void addStatistic(float val, int index) {
-    this.statistics[index].add(val);
-    this.sorted[index] = false;
+  private void addStatistic(float val, int index) {
+    synchronized (this.statistics[index]) {
+      this.statistics[index].add(val);
+      this.sorted[index] = false;
+    }
   }
 
-  synchronized void addCoverage(float coverage) {
+  void addCoverage(float coverage) {
     addStatistic(coverage, COVERAGE);
   }
 
-  synchronized void addContention(float contention) {
+  void addContention(float contention) {
     addStatistic(contention, CONTENTION);
   }
 
-  synchronized void addMinContention(float contention) {
+  void addMinContention(float contention) {
     addStatistic(contention, MIN_CONTENTION);
   }
 
-  synchronized void addMaxContention(float contention) {
+  void addMaxContention(float contention) {
     addStatistic(contention, MAX_CONTENTION);
   }
 
-  private synchronized float getMinStatistic(int index) {
-    if(this.statistics[index].size() == 0){
-      return Float.NaN;
+  private float getMinStatistic(int index) {
+    synchronized (this.statistics[index]) {
+      if (this.statistics[index].size() == 0) {
+        return Float.NaN;
+      }
+
+      if (!this.sorted[index]) {
+        Collections.sort(this.statistics[index]);
+        this.sorted[index] = true;
+      }
+
+      return this.statistics[index].get(0);
     }
-    
-    if (!this.sorted[index]) {
-      Collections.sort(this.statistics[index]);
-      this.sorted[index] = true;
-    }
-    
-    return this.statistics[index].get(0);
   }
 
   float getMinCoverage() {
@@ -114,14 +116,16 @@ public class ExperimentStats {
   }
 
   private float getMaxStatistic(int index) {
-    if(this.statistics[index].size() == 0){
-      return Float.NaN;
+    synchronized (this.statistics[index]) {
+      if (this.statistics[index].size() == 0) {
+        return Float.NaN;
+      }
+      if (!this.sorted[index]) {
+        Collections.sort(this.statistics[index]);
+        this.sorted[index] = true;
+      }
+      return this.statistics[index].get(this.statistics[index].size() - 1);
     }
-    if (!this.sorted[index]) {
-      Collections.sort(this.statistics[index]);
-      this.sorted[index] = true;
-    }
-    return this.statistics[index].get(this.statistics[index].size() - 1);
   }
 
   float getMaxCoverage() {
@@ -141,14 +145,16 @@ public class ExperimentStats {
   }
 
   private float getMedianStatistic(int index) {
-    if(this.statistics[index].size() == 0){
-      return Float.NaN;
+    synchronized (this.statistics[index]) {
+      if (this.statistics[index].size() == 0) {
+        return Float.NaN;
+      }
+      if (!this.sorted[index]) {
+        Collections.sort(this.statistics[index]);
+        this.sorted[index] = true;
+      }
+      return this.statistics[index].get(this.statistics[index].size() / 2);
     }
-    if (!this.sorted[index]) {
-      Collections.sort(this.statistics[index]);
-      this.sorted[index] = true;
-    }
-    return this.statistics[index].get(this.statistics[index].size() / 2);
   }
 
   float getMedianCoverage() {
@@ -168,15 +174,17 @@ public class ExperimentStats {
   }
 
   private float getMeanStatistic(int index) {
-    if(this.statistics[index].size() == 0){
-      return Float.NaN;
-    }
-    float totalCoverage = 0;
-    for (Float c : this.statistics[index]) {
-      totalCoverage += c;
-    }
+    synchronized (this.statistics[index]) {
+      if (this.statistics[index].size() == 0) {
+        return Float.NaN;
+      }
+      float totalCoverage = 0;
+      for (Float c : this.statistics[index]) {
+        totalCoverage += c;
+      }
 
-    return totalCoverage / this.statistics[index].size();
+      return totalCoverage / this.statistics[index].size();
+    }
   }
 
   float getMeanCoverage() {
@@ -196,15 +204,18 @@ public class ExperimentStats {
   }
 
   private float get95PercentileStatistic(int index) {
-    if(this.statistics[index].size() == 0){
-      return Float.NaN;
-    }
-    if (!this.sorted[index]) {
-      Collections.sort(this.statistics[index]);
-      this.sorted[index] = true;
-    }
+    synchronized (this.statistics[index]) {
+      if (this.statistics[index].size() == 0) {
+        return Float.NaN;
+      }
+      if (!this.sorted[index]) {
+        Collections.sort(this.statistics[index]);
+        this.sorted[index] = true;
+      }
 
-    return this.statistics[index].get((int) (this.statistics[index].size() * .95));
+      return this.statistics[index]
+          .get((int) (this.statistics[index].size() * .95));
+    }
   }
 
   float get95PercentileCoverage() {

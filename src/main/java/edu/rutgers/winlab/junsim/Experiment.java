@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2012 Robert Moore and Rutgers University
+ * Owl Platform
+ * Copyright (C) 2012 Robert Moore and the Owl Platform
  * 
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,32 +18,12 @@
  */
 package edu.rutgers.winlab.junsim;
 
-import java.util.Collection;
-
 /**
- * Configuration for a simulation task.
  * @author Robert Moore
  *
  */
-public class TaskConfig {
-  /**
-   * The ordinal number of this trial (0th, 1st, 2nd, etc.)
-   */
-  int trialNumber = 0;
-  /**
-   * Total number of transmitters used.
-   */
-  int numTransmitters;
-  /**
-   * Collection of transmitters to use.
-   */
-  Collection<Transmitter> transmitters;
-  /**
-   * Maximum number of receivers to place.
-   */
-  int numReceivers;
-  
-  Collection<Receiver> receivers;
-  
+public interface Experiment {
+
+  public Boolean perform();
   
 }

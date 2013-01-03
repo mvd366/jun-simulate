@@ -17,11 +17,8 @@
  */
 package edu.rutgers.winlab.junsim;
 
-import com.thoughtworks.xstream.annotations.XStreamOmitField;
-
 /**
  * @author Robert Moore
- * 
  */
 public class Config {
   /**
@@ -54,9 +51,6 @@ public class Config {
 
   float universeWidth = 1920f;
   float universeHeight = 1080f;
-  
-  int renderWidth = 1920;
-  int renderHeight = 1080;
 
   /**
    * Seed value for randomizing.
@@ -74,31 +68,58 @@ public class Config {
   String outputFileName = "to-simulate.txt";
 
   /**
-   * Whether or not to show the graphical display.
-   */
-  boolean showDisplay = true;
-  /**
-   * Whether or not to render images for "failures" where high numbers of
-   * receivers can't "cover" 99.9%+ of Capture Disks.
-   */
-  boolean generateImages = false;
-
-  /**
    * Number of worker threads for concurrent execution. Careful with large
    * numbers of transmitters!
    */
   int numThreads = 1;
-  
+
   /**
    * Whether or not to remove solution points related to capture disks that
    * are removed.
    */
   boolean stripSolutionPoints = false;
-  
+
   /**
    * Maximum range (in meters) that a transmitter may be heard by a receiver.
    */
   float maxRangeMeters = 100f;
+
+  /**
+   * Number of points per grid unit.
+   */
+  float gridDensity = 25f;
+
+  /**
+   * The location of the rendering configuration file.
+   */
+  String renderConfig = "src/main/resources/render.xml";
+
+  /**
+   * Type of experiment to run.
+   * "basic", "binned", "grid", or "recursive"
+   */
+  String experimentType = "basic";
+  
+  /**
+   * The filename of the list of transmitter locations.  If not provided, non-existent, or
+   * empty, it will be generated randomly.
+   */
+  String transmittersFile = "transmitters.txt";
+  
+  /**
+   * The filename for the receivers output.
+   */
+  String receiversFile = "receivers.ssv";
+  
+  /**
+   * The base directory (path) for all output files.
+   */
+  String outputBasePath = "";
+  
+  /**
+   * Whether or not to randomize grid points.
+   */
+  boolean randomized=false;
 
   public int getNumTransmitters() {
     return numTransmitters;
@@ -148,14 +169,6 @@ public class Config {
     this.beta = beta;
   }
 
-  public boolean isShowDisplay() {
-    return showDisplay;
-  }
-
-  public void setShowDisplay(boolean showDisplay) {
-    this.showDisplay = showDisplay;
-  }
-
   public long getNumTrials() {
     return numTrials;
   }
@@ -180,11 +193,51 @@ public class Config {
     this.numThreads = numThreads;
   }
 
-  public boolean isGenerateImages() {
-    return generateImages;
+  public float getGridDensity() {
+    return gridDensity;
   }
 
-  public void setGenerateImages(boolean generateImages) {
-    this.generateImages = generateImages;
+  public void setGridDensity(float gridDensity) {
+    this.gridDensity = gridDensity;
+  }
+
+  public String getRenderConfig() {
+    return renderConfig;
+  }
+
+  public void setRenderConfig(String renderConfig) {
+    this.renderConfig = renderConfig;
+  }
+
+  public boolean isRandomized() {
+    return randomized;
+  }
+
+  public void setRandomized(boolean randomized) {
+    this.randomized = randomized;
+  }
+
+  public String getTransmittersFile() {
+    return transmittersFile;
+  }
+
+  public void setTransmittersFile(String transmittersFile) {
+    this.transmittersFile = transmittersFile;
+  }
+
+  public String getReceiversFile() {
+    return receiversFile;
+  }
+
+  public void setReceiversFile(String receiversFile) {
+    this.receiversFile = receiversFile;
+  }
+
+  public String getOutputBasePath() {
+    return outputBasePath;
+  }
+
+  public void setOutputBasePath(String outputBasePath) {
+    this.outputBasePath = outputBasePath;
   }
 }

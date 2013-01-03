@@ -1,0 +1,22 @@
+<edu.rutgers.winlab.junsim.RenderConfig>
+  <!-- Flag to render images or not. -->
+  <generateImages>false</generateImages>
+  <!-- Width of rendered images, in pixels. -->
+  <renderWidth>800</renderWidth>
+  <!-- Height of rendered images, in pixels. -->
+  <renderHeight>600</renderHeight>
+  <!-- Flag to draw transmitter locations. -->
+  <drawTransmitters>true</drawTransmitters>
+  <!-- Flag to draw receiver locations. -->
+  <drawReceivers>true</drawReceivers>
+  <!-- Flag to draw lines from receivers to transmitters. -->
+  <drawReceiverLines>true</drawReceiverLines>
+  <!-- Flag to draw solution points. -->
+  <drawSolutionPoints>true</drawSolutionPoints>
+  <!-- Flag to draw the solution points legend. -->
+  <drawLegend>true</drawLegend>
+  <!-- Flag to use color (true) or grayscale (false). -->
+  <useColorMode>true</useColorMode>
+  <!-- Flag to draw capture disks. -->
+  <drawCaptureDisks>false</drawCaptureDisks>
+</edu.rutgers.winlab.junsim.RenderConfig>

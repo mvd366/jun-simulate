@@ -19,33 +19,82 @@ package edu.rutgers.winlab.junsim;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
+import java.awt.Polygon;
 import java.awt.geom.AffineTransform;
+import java.awt.geom.Ellipse2D;
+import java.awt.geom.GeneralPath;
 import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.Set;
 
 /**
+ * Represents a receiver to place.
+ * 
  * @author Robert Moore
- *
  */
-public class Receiver extends Point2D.Float implements Drawable{
-  
+public class Receiver extends Point2D.Float implements Drawable {
+
+  /**
+   * Auto-generated.
+   */
+  private static final long serialVersionUID = -6214708115166326996L;
+  /**
+   * The set of covering disks that overlap this receiver's position.
+   */
   Collection<CaptureDisk> coveringDisks = new LinkedList<CaptureDisk>();
-  
-  public void draw(Graphics2D g, float scaleX, float scaleY){
+
+  @Override
+  public void draw(Graphics2D g, float scaleX, float scaleY) {
     AffineTransform origTransform = g.getTransform();
     Color origColor = g.getColor();
-//    g.translate((int)this.getX(),(int)this.getY());
-   
-    g.setColor(Color.YELLOW);
-    for(CaptureDisk d : this.coveringDisks){
-      Line2D line = new Line2D.Double(d.disk.getCenterX()*scaleX, d.disk.getCenterY()*scaleY, this.getX()*scaleX, this.getY()*scaleY);
-      g.draw(line);
+    int coverageCount = 0;
+
+    HashMap<Transmitter, Integer> coverageCounts = new HashMap<Transmitter, Integer>();
+
+    for (CaptureDisk d : this.coveringDisks) {
+      Integer count = coverageCounts.get(d.t1);
+      if (count == null) {
+        count = new Integer(0);
+      }
+      coverageCounts.put(d.t1, Integer.valueOf(count.intValue() + 1));
+
     }
-    
+    coverageCount = coverageCounts.size();
+    if (Main.gfxConfig.isDrawReceiverLines()) {
+      for (Transmitter tx : coverageCounts.keySet()) {
+        int totalDisks = tx.getDisks().size();
+        float coverageRate = ((float) coverageCounts.get(tx).intValue())
+            / totalDisks;
+
+        Line2D line = new Line2D.Double(tx.getX() * scaleX, tx.getY() * scaleY,
+            this.getX() * scaleX, this.getY() * scaleY);
+
+        g.setColor(FileRenderer.getColorForPercent(coverageRate));
+        g.draw(line);
+
+      }
+    }
+
+    if (Main.gfxConfig.isDrawReceivers()) {
+      float size = FileRenderer.getRadiusForPercent(1f);
+      GeneralPath triangle = new GeneralPath(GeneralPath.WIND_EVEN_ODD, 3);
+      triangle.moveTo(this.getX() * scaleX - size, this.getY() * scaleY + size);
+      triangle.lineTo(this.getX() * scaleX + size, this.getY() * scaleY + size);
+      triangle.lineTo(this.getX() * scaleX, this.getY() * scaleY - size);
+      triangle.closePath();
+      g.setColor(FileRenderer.getReceiverColor());
+      g.fill(triangle);
+
+      g.setColor(origColor);
+      g.draw(triangle);
+      g.drawString("R" + this.coveringDisks.size()+"/"+coverageCount, (int) (this.getX() * scaleX + size),
+          (int) (this.getY() * scaleY - size));
+    }
     g.setColor(origColor);
-    g.drawString("R"+this.coveringDisks.size(), (int)(this.getX()*scaleX),(int)(this.getY()*scaleY));
     g.setTransform(origTransform);
   }
 }

@@ -19,7 +19,6 @@ package edu.rutgers.winlab.junsim;
 
 import java.awt.Graphics2D;
 import java.awt.geom.AffineTransform;
-import java.awt.geom.Ellipse2D;
 
 /**
  * @author Robert Moore
@@ -47,6 +46,11 @@ public class CaptureDisk implements Drawable {
     return super.equals(o);
   }
 
+  /**
+   * Determines whether this capture disk is the same as another.
+   * @param c another capture disk.
+   * @return {@code true} if this disk and {@code c} are equal (having the same disk), else {@code false}.
+   */
   public boolean equals(CaptureDisk c) {
     if (this.t1.equals(c.t1) && this.t2.equals(c.t2)) {
       return true;
@@ -54,6 +58,7 @@ public class CaptureDisk implements Drawable {
     return this.disk.equals(c.disk);
   }
 
+  @Override
   public void draw(Graphics2D g, float scaleX, float scaleY) {
     AffineTransform origTransform = g.getTransform();
     // g.translate(this.disk.getMinX(), this.disk.getMinY());

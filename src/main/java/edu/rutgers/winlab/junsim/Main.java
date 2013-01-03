@@ -18,9 +18,12 @@
 package edu.rutgers.winlab.junsim;
 
 import java.awt.Dimension;
+import java.awt.Graphics;
 import java.awt.geom.Point2D;
+import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -35,37 +38,80 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import javax.imageio.ImageIO;
 import javax.swing.JFrame;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.thoughtworks.xstream.XStream;
 
 /**
- * @author Robert Moore
+ * Main class to start the receiver placement simulations.
  * 
+ * @author Robert Moore
  */
 public class Main {
 
+  private static final Logger log = LoggerFactory.getLogger(Main.class);
+  /**
+   * Configuration file for the application.
+   */
   static Config config = new Config();
 
-  static Random rand = new Random(Main.config.randomSeed);
+  /**
+   * Configuration for rendering images.
+   */
+  static RenderConfig gfxConfig = new RenderConfig();
 
+  /**
+   * Random number generator.
+   */
+  static Random rand;
+
+  /**
+   * Worker threads for executing parallel tasks.
+   */
   static ExecutorService workers = null;
 
+  /**
+   * Maximum number of worker threads to use.
+   */
   static int maxConcurrentTasks = 1;
 
+  /**
+   * Parses the commandline arguments and starts the simulation.
+   * 
+   * @param args
+   *          configuration file
+   * @throws IOException
+   *           if an exception occurs while reading the configuration file.
+   */
   public static void main(String[] args) throws IOException {
+    XStream configReader = new XStream();
     if (args.length == 1) {
       System.out.println("Using configuration file " + args[0]);
-      XStream configReader = new XStream();
+
       File configFile = new File(args[0]);
       Main.config = (Config) configReader.fromXML(configFile);
     } else {
       System.out.println("Using built-in default configuration.");
     }
+    rand = new Random(Main.config.randomSeed);
+
+    try {
+      RenderConfig rConf = (RenderConfig) configReader.fromXML(new File(
+          config.renderConfig));
+      gfxConfig = rConf;
+
+    } catch (Exception e) {
+      System.err.println("Unable to read rendering configuration file \""
+          + config.renderConfig + "\".");
+      e.printStackTrace();
+    }
 
     if (Main.config.numThreads < 1) {
-      Main.config.numThreads = Runtime.getRuntime()
-          .availableProcessors();
+      Main.config.numThreads = Runtime.getRuntime().availableProcessors();
       workers = Executors.newFixedThreadPool(Main.config.numThreads);
       maxConcurrentTasks = Main.config.numThreads;
       System.out.println("Using " + Main.config.numThreads
@@ -77,101 +123,132 @@ public class Main {
           + " threads based on configuration file.");
     }
 
+    // Shutdown handler (for signals from OS)
     Runtime.getRuntime().addShutdownHook(new Thread() {
+      @Override
       public void run() {
         Main.workers.shutdownNow();
       }
     });
 
-    if (Main.config.showDisplay) {
-      doDisplayedResult();
-    } else {
-      doSimulation();
-    }
+    doSimulation();
+
   }
 
+  /**
+   * Perform an unattended set of simulations.
+   * 
+   * @throws IOException
+   *           if an exception is thrown.
+   */
   public static void doSimulation() throws IOException {
-    File outputFile = new File(Main.config.outputFileName);
+    File outputFile = new File(Main.buildPath(Main.config.getOutputFileName()));
     if (!outputFile.exists()) {
+      if(outputFile.getParentFile()!=null){
+        outputFile.getParentFile().mkdirs();
+      }
       outputFile.createNewFile();
     }
     if (!outputFile.canWrite()) {
-      System.err.println("Unable to write to " + Main.config.outputFileName
+      System.err.println("Unable to write to " + outputFile.getName()
           + ". Please check file system permissions.");
       return;
     }
 
+    // Output file (CSV) for stats
     PrintWriter fileWriter = new PrintWriter(new FileWriter(outputFile));
+
+    PrintWriter receiverWriter = new PrintWriter(new FileWriter(
+        Main.buildPath(config.getReceiversFile())));
+
+    
+    Collection<Transmitter> transmitters = new LinkedList<Transmitter>();
+    File transmittersFile = null;
+    if (config.getTransmittersFile() != null
+        && config.getTransmittersFile().trim().length() > 0) {
+      transmittersFile = new File(Main.buildPath(config.getTransmittersFile().trim()));
+      if (transmittersFile.exists() && transmittersFile.canRead()) {
+        BufferedReader txReader = new BufferedReader(new FileReader(
+            transmittersFile));
+        String line = null;
+        while ((line = txReader.readLine()) != null) {
+          String[] components = line.split("\\s+");
+          if (components.length < 2) {
+            log.info("Skipping line \"{}\".", line);
+            continue;
+          }
+          float xPos = Float.parseFloat(components[0]);
+          float yPos = Float.parseFloat(components[1]);
+          final Transmitter txer = new Transmitter();
+          txer.x = xPos;
+          txer.y = yPos;
+          transmitters.add(txer);
+        }
+      }
+
+    }
+    boolean generateTransmitters = transmitters.isEmpty();
+
     ExperimentStats[] stats = new ExperimentStats[Main.config.numReceivers];
     for (int i = 0; i < stats.length; ++i) {
       stats[i] = new ExperimentStats();
       stats[i].numberReceivers = i + 1;
-      stats[i].numberTransmitters = Main.config.numTransmitters;
+      stats[i].numberTransmitters = generateTransmitters ? Main.config.numTransmitters
+          : transmitters.size();
     }
 
     fileWriter
         .println("# Tx, # Rx, Min % Covered, Med. % Covered, Mean % Covered, 95% Coverage, Max % Covered, Min Contention, Med. Contention, Mean Contention, 95% Contention, Max Contention");
 
-//    List<ExperimentTask> tasks = new LinkedList<ExperimentTask>();
-
     // Iterate through some number of trials
     for (int trialNumber = 0; trialNumber < Main.config.numTrials; ++trialNumber) {
 
-      int numTransmitters = Main.config.numTransmitters;
       // Randomly generate transmitter locations
-      Collection<Transmitter> transmitters = Main
-          .generateTransmitterLocations(numTransmitters);
-
-      // System.out.printf("Trial %d/%d: %d tx, %,d disks, %,d solution points.\n",
-      // trialNumber+1, Main.config.numTrials, numTransmitters, disks.size(),
-      // solutionPoints.size());
+      if (generateTransmitters) {
+        transmitters = Main
+            .generateTransmitterLocations(Main.config.numTransmitters);
+        PrintWriter txWriter = new PrintWriter(new FileWriter(Main.buildPath(
+            Main.config.getTransmittersFile())));
+        for (Transmitter txer : transmitters) {
+          txWriter.printf("%.2f %.2f\n", txer.x, txer.y);
+        }
+        txWriter.flush();
+        txWriter.close();
+      } else {
+        Main.generateTransmitterLocations(Main.config.numTransmitters);
+      }
 
       TaskConfig conf = new TaskConfig();
       conf.trialNumber = trialNumber;
-      conf.numTransmitters = numTransmitters;
+      conf.numTransmitters = transmitters.size();
       conf.transmitters = transmitters;
       conf.numReceivers = Main.config.numReceivers;
-//      HittingExperimentTask task = new HittingExperimentTask(conf, stats, workers);
-      GreedyExperimentTask task = new GreedyExperimentTask(conf, stats, workers);
+      conf.receivers = new LinkedList<Receiver>();
+
+      Experiment task;
+      if ("binned".equalsIgnoreCase(config.experimentType)) {
+        task = new BinnedBasicExperiment(conf, stats, workers);
+      } else if ("grid".equalsIgnoreCase(config.experimentType)) {
+        task = new BinnedGridExperiment(conf, stats, workers);
+      } else if ("recursive".equalsIgnoreCase(config.experimentType)) {
+        task = new BinnedRecurGridExperiment(conf, stats, workers);
+      } else {
+        task = new BasicExperiment(conf, stats, workers);
+      }
       task.perform();
-//      tasks.add(task);
-
-//      // Don't schedule too many at once, eats-up memory!
-//      if (tasks.size() >= Main.maxConcurrentTasks) {
-//        System.out.printf("Executing %d tasks. %d remain.\n", tasks.size(),Main.config.numTrials-trialNumber-1);
-//        try {
-//          // The following call will block utnil ALL tasks are complete
-//          workers.invokeAll(tasks);
-//        } catch (InterruptedException e) {
-//          // TODO Auto-generated catch block
-//          e.printStackTrace();
-//        }
-//        for (ExperimentTask t : tasks) {
-//          // t.config.disks = null;
-//          // t.config.solutionPoints = null;
-//          t.config.transmitters.clear();
-//          t.config.transmitters = null;
-//        }
-//        tasks.clear();
-//      }
+      String prefix = "";
+      if (Main.config.numTrials > 1) {
+        prefix = Integer.valueOf(trialNumber).toString();
+      }
+      PrintWriter rxWriter = new PrintWriter(new FileWriter(Main.buildPath(prefix
+          + Main.config.getReceiversFile())));
+      for (Receiver rxer : conf.receivers) {
+        rxWriter.printf("%.2f %.2f %d\n", rxer.x, rxer.y,
+            rxer.coveringDisks.size());
+      }
+      rxWriter.flush();
+      rxWriter.close();
     } // End number of trials
-
-//    if (!tasks.isEmpty()) {
-//      try {
-//        // The following call will block utnil ALL tasks are complete
-//        workers.invokeAll(tasks);
-//      } catch (InterruptedException e) {
-//        // TODO Auto-generated catch block
-//        e.printStackTrace();
-//      }
-//      for (ExperimentTask t : tasks) {
-//        // t.config.disks = null;
-//        // t.config.solutionPoints = null;
-//        t.config.transmitters.clear();
-//        t.config.transmitters = null;
-//      }
-//      tasks.clear();
-//    }
 
     workers.shutdown();
     System.out.println("Waiting up to 60 seconds for threadpool to terminate.");
@@ -185,152 +262,24 @@ public class Main {
     // # Tx, # Rx, Min % Covered, Med. %
     // Covered, Mean % Covered, Max % Covered, 95% Coverage
     for (ExperimentStats s : stats) {
-      fileWriter.printf("%d, %d, %.4f, %.4f, %.4f, %.4f, %.4f, %.5f, %.5f, %.5f, %.5f, %.5f\n",
-          s.numberTransmitters, s.numberReceivers, s.getMinCoverage(),
-          s.getMedianCoverage(), s.getMeanCoverage(), s.get95PercentileCoverage(),
-          s.getMaxCoverage(),
-          s.getMinContention(), s.getMedianContention(), s.getMeanContention(),
-          s.get95PercentileContention(), s.getMaxContention()
-          );
+      fileWriter
+          .printf(
+              "%d, %d, %.4f, %.4f, %.4f, %.4f, %.4f, %.5f, %.5f, %.5f, %.5f, %.5f\n",
+              Integer.valueOf(s.numberTransmitters),
+              Integer.valueOf(s.numberReceivers),
+              Float.valueOf(s.getMinCoverage()),
+              Float.valueOf(s.getMedianCoverage()),
+              Float.valueOf(s.getMeanCoverage()),
+              Float.valueOf(s.get95PercentileCoverage()),
+              Float.valueOf(s.getMaxCoverage()),
+              Float.valueOf(s.getMinContention()),
+              Float.valueOf(s.getMedianContention()),
+              Float.valueOf(s.getMeanContention()),
+              Float.valueOf(s.get95PercentileContention()),
+              Float.valueOf(s.getMaxContention()));
     }
     fileWriter.flush();
     fileWriter.close();
-  }
-
-  public static float getMaxDistance(float power, float alpha){
-    // -100 = power*-10*alpha*Math.log10(distance/Main.config.waveLengthInMeters);
-    // -100/-10 = alpha*Math.log10(distance/Main.config.waveLengthInMeters);
-    // 10*power/alpha = Math.log10(distance/Main.config.waveLengthInMeters);
-    // (10*power/alpha) + Math.log10(Main.config.waveLengthInMeters) = Math.log10(distance);
-    // Math.pow(10,(10*power/alpha) + Math.log10(Main.config.waveLengthInMeters)) = distance
-    
-    return 0f;
-  }
-  
-  public static void doDisplayedResult() throws IOException {
-
-    DisplayPanel display = new DisplayPanel();
-    display.setPreferredSize(new Dimension(640, 480));
-
-    JFrame frame = new JFrame();
-
-    frame.setContentPane(display);
-    frame.pack();
-
-    frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-    frame.setVisible(true);
-
-    Collection<Transmitter> transmitters = generateTransmitterLocations(Main.config.numTransmitters);
-    BufferedReader userPrompt = new BufferedReader(new InputStreamReader(
-        System.in));
-    display.setTransmitters(transmitters);
-    System.out.println("[Transmitters]");
-    userPrompt.readLine();
-
-    Collection<CaptureDisk> disks = new HashSet<CaptureDisk>();
-    // Compute all possible capture disks
-    for (Transmitter t1 : transmitters) {
-      for (Transmitter t2 : transmitters) {
-        CaptureDisk someDisk = generateCaptureDisk(t1, t2);
-        if (someDisk != null) {
-          disks.add(someDisk);
-        }
-      }
-    }
-
-    display.setCaptureDisks(disks);
-    System.out.println("[Capture Disks]");
-    userPrompt.readLine();
-
-    // Add center points of all capture disks as solutions
-    Collection<Point2D> solutionPoints = new HashSet<Point2D>();
-    for (CaptureDisk disk : disks) {
-      solutionPoints.add(new Point2D.Float((float) disk.disk.getCenterX(),
-          (float) disk.disk.getCenterY()));
-    }
-
-    // Add intersection of all capture disks as solutions
-    for (CaptureDisk d1 : disks) {
-      for (CaptureDisk d2 : disks) {
-        Collection<Point2D> intersections = generateIntersections(d1, d2);
-        if (intersections != null && !intersections.isEmpty()) {
-          solutionPoints.addAll(intersections);
-        }
-      }
-    }
-    display.setSolutionPoints(solutionPoints);
-    System.out.println("[Solution Points]");
-    userPrompt.readLine();
-
-    Collection<Receiver> receiverPositions = new ConcurrentLinkedQueue<Receiver>();
-
-    int m = 0;
-
-    int totalCaptureDisks = disks.size();
-
-    System.out.println("Transmitters: " + Main.config.numTransmitters);
-    System.out.println("Receivers: " + Main.config.numReceivers);
-    System.out.println("Capture disks: " + totalCaptureDisks);
-    System.out.println("Solution points: " + solutionPoints.size());
-
-    // Keep going while there are either solution points or capture disks
-    while (m < Main.config.numReceivers && !solutionPoints.isEmpty()
-        && !disks.isEmpty()) {
-      ConcurrentHashMap<Point2D, Collection<CaptureDisk>> bipartiteGraph = new ConcurrentHashMap<Point2D, Collection<CaptureDisk>>();
-      ++m;
-      Point2D maxPoint = null;
-      int maxDisks = Integer.MIN_VALUE;
-
-      // For each solution point, map the set of capture disks that contain it
-      for (Point2D p : solutionPoints) {
-        for (CaptureDisk d : disks) {
-          if (d.disk.contains(p)) {
-            Collection<CaptureDisk> containingPoints = bipartiteGraph.get(p);
-            if (containingPoints == null) {
-              containingPoints = new HashSet<CaptureDisk>();
-              bipartiteGraph.put(p, containingPoints);
-            }
-            containingPoints.add(d);
-            if (containingPoints.size() > maxDisks) {
-              maxDisks = containingPoints.size();
-              maxPoint = p;
-            }
-          }
-        }
-      }
-
-      // Remove the highest point and its solution disks
-      if (maxDisks > 0) {
-        Collection<CaptureDisk> removedDisks = bipartiteGraph.get(maxPoint);
-        Receiver r = new Receiver();
-        r.setLocation(maxPoint);
-        r.coveringDisks = removedDisks;
-        receiverPositions.add(r);
-        solutionPoints.remove(maxPoint);
-        disks.removeAll(removedDisks);
-      }
-      // No solutions found?
-      else {
-        break;
-      }
-    }
-
-    display.setReceiverPoints(receiverPositions);
-
-    float capturedDisks = totalCaptureDisks - disks.size();
-    float captureRatio = (capturedDisks / totalCaptureDisks);
-
-    System.out.printf("%.2f%% capture rate (%d/%d)\n", captureRatio * 100,
-        (int) capturedDisks, totalCaptureDisks);
-
-    System.out.println("*********************");
-    System.out.println("Press [ENTER] to QUIT");
-    System.out.println("*********************");
-    userPrompt.readLine();
-    if (Main.config.showDisplay) {
-      frame.setVisible(false);
-      frame.dispose();
-    }
   }
 
   /**
@@ -379,17 +328,18 @@ public class Main {
     captureDisk.t2 = t2;
     double betaSquared = Math.pow(Main.config.beta, 2);
     double denominator = 1 - betaSquared;
-    
+
     double centerX = (t1.getX() - (betaSquared * t2.getX())) / denominator;
     double centerY = (t1.getY() - (betaSquared * t2.getY())) / denominator;
 
     double euclideanDistance = Math.sqrt(Math.pow(t1.getX() - t2.getX(), 2)
         + Math.pow(t1.getY() - t2.getY(), 2));
-    
+
     /**
-     * TODO: Improve the cutting based on transmit distance. This is overly simplistic.
+     * TODO: Improve the cutting based on transmit distance. This is overly
+     * simplistic.
      */
-    if(euclideanDistance > (2*Main.config.maxRangeMeters)){
+    if (euclideanDistance > (2 * Main.config.maxRangeMeters)) {
       return null;
     }
 
@@ -398,6 +348,8 @@ public class Main {
     captureDisk.disk.radius = (float) radius;
     captureDisk.disk.center.x = (float) centerX;
     captureDisk.disk.center.y = (float) centerY;
+
+    t1.addDisk(captureDisk);
 
     return captureDisk;
   }
@@ -462,5 +414,51 @@ public class Main {
       points.add(new Point2D.Float((float) x4ii, (float) y4ii));
     }
     return points;
+  }
+
+  public static void saveImage(final FileRenderer display, final String fileName) {
+    final long start = System.currentTimeMillis();
+    final File imageFile = new File(fileName + ".png");
+    System.out.printf("Rendering \"%s\".\n", imageFile);
+    final BufferedImage img = new BufferedImage(Main.gfxConfig.renderWidth,
+        Main.gfxConfig.renderHeight,
+        gfxConfig.isUseColorMode() ? BufferedImage.TYPE_INT_RGB
+            : BufferedImage.TYPE_BYTE_GRAY);
+    final Graphics g = img.createGraphics();
+
+    display.render(g, img.getWidth(), img.getHeight());
+
+    imageFile.mkdirs();
+    if (!imageFile.exists()) {
+      try {
+        imageFile.createNewFile();
+      } catch (final IOException e) {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+      }
+    }
+    try {
+      ImageIO.write(img, "png", imageFile);
+      System.out.println("Saved " + imageFile.getName());
+    } catch (final Exception e) {
+      e.printStackTrace();
+    }
+    g.dispose();
+    final long duration = System.currentTimeMillis() - start;
+    System.out.printf("Rendering took %,dms.\n", duration);
+  }
+  
+  /**
+   * Builds a pathname for the specified "path" relative path value.  Uses the {@link Config#getOutputBasePath()} value
+   * to prefix the path.
+   * @param path the user-provided path.
+   * @return a combined path using both the configured base path and the provided path.
+   */
+  public static String buildPath(final String path){
+    final String prefix = config.getOutputBasePath().trim();
+    if(prefix.length() > 0){
+      return String.format("%s%s%s",prefix,File.separator,path);
+    }
+    return path;
   }
 }

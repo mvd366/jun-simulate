@@ -18,12 +18,9 @@
  */
 package edu.rutgers.winlab.junsim;
 
-import java.awt.Color;
 import java.awt.Graphics2D;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * @author Robert Moore
