@@ -51,6 +51,8 @@ public class AnnealingExperimentTask {
   final ExperimentStats stats[];
   String saveDirectory = null;
   private final ExecutorService workers;
+  
+  private final FileRenderer render;
 
   public AnnealingExperimentTask(final TaskConfig config, final ExperimentStats[] stats,
       final ExecutorService workers) {
@@ -62,6 +64,7 @@ public class AnnealingExperimentTask {
         + (Main.config.stripSolutionPoints ? "_S" : ""),
         Main.config.randomSeed, this.config.numTransmitters,
         this.config.trialNumber);
+    this.render = new FileRenderer(Main.gfxConfig);
   }
 
   private static final class SolutionCheckTask implements Callable<Receiver> {
@@ -126,13 +129,13 @@ public class AnnealingExperimentTask {
     TreeMap<Point2D, HashSet<Point2D>> adjacencies =
       new TreeMap<Point2D, HashSet<Point2D>>(new PointComparator());
 
-    DisplayPanel display = new DisplayPanel();
+    
 
-    if (Main.config.generateImages) {
+    if (Main.gfxConfig.generateImages) {
 
-      display.setTransmitters(this.config.transmitters);
-      saveImage(display, this.saveDirectory + File.separator + "0000");
-      display.clear();
+      this.render.setTransmitters(this.config.transmitters);
+      Main.saveImage(this.render, this.saveDirectory + File.separator + "0000");
+      this.render.clear();
     }
 
     Collection<CaptureDisk> disks = new HashSet<CaptureDisk>();
@@ -147,11 +150,11 @@ public class AnnealingExperimentTask {
     }
     System.out.println("[" + this.config.trialNumber + "] Generated "
         + disks.size() + " disks.");
-    if (Main.config.generateImages) {
-      display.setTransmitters(this.config.transmitters);
-      display.setCaptureDisks(disks);
-      saveImage(display, this.saveDirectory + File.separator + "0010");
-      display.clear();
+    if (Main.gfxConfig.generateImages) {
+      this.render.setTransmitters(this.config.transmitters);
+      this.render.setCaptureDisks(disks);
+      Main.saveImage(this.render, this.saveDirectory + File.separator + "0010");
+      this.render.clear();
     }
 
     Collection<Point2D> solutionPoints = AnnealingExperimentTask.generateSolutionPoints(
@@ -160,12 +163,12 @@ public class AnnealingExperimentTask {
     // This occurs in the generateSolutionPoints function
 
     System.out.printf("[%d] Generated %,d solution points.\n",this.config.trialNumber, solutionPoints.size());
-    if (Main.config.generateImages) {
-      display.setTransmitters(this.config.transmitters);
-      display.setSolutionPoints(solutionPoints);
-      display.setCaptureDisks(disks);
-      saveImage(display, this.saveDirectory + File.separator + "0020");
-      display.clear();
+    if (Main.gfxConfig.generateImages) {
+      this.render.setTransmitters(this.config.transmitters);
+      this.render.setSolutionPoints(solutionPoints);
+      this.render.setCaptureDisks(disks);
+      Main.saveImage(this.render, this.saveDirectory + File.separator + "0020");
+      this.render.clear();
     }
 
     //TODO FIXME HERE Use adjacency list to drive simulated annealing
@@ -425,37 +428,6 @@ public class AnnealingExperimentTask {
       }
     }
     return false;
-  }
-
-  private void saveImage(DisplayPanel display, String fileName) {
-    long start = System.currentTimeMillis();
-    File imageFile = new File(fileName + ".png");
-    System.out.printf("Rendering \"%s\".\n", imageFile);
-    BufferedImage img = new BufferedImage(Main.config.renderWidth,
-        Main.config.renderHeight, BufferedImage.TYPE_INT_RGB);
-    Graphics g = img.createGraphics();
-
-    display.render(g, img.getWidth(), img.getHeight());
-
-    
-    imageFile.mkdirs();
-    if (!imageFile.exists()) {
-      try {
-        imageFile.createNewFile();
-      } catch (IOException e) {
-        // TODO Auto-generated catch block
-        e.printStackTrace();
-      }
-    }
-    try {
-      ImageIO.write(img, "png", imageFile);
-      System.out.println("Saved " + imageFile.getName());
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
-    g.dispose();
-    long duration = System.currentTimeMillis() - start;
-    System.out.printf("Rendering took %,dms.\n",duration);
   }
 
 }
