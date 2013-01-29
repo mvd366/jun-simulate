@@ -249,26 +249,42 @@ randomly placed around the area.</p>
 <table >
   <tr>
     <td><a href="images/1000.png"><img src="images/1000-tn.png"
-    height="256" width="256" ></img></a><p>Arrangement of the
-    transmitters.</p></td>
-    <td><a href="images/1001.png"><img src="images/1001-tn.png" height="256"
-    width="256" ></img></a><p>The first receiver is placed. </p></td>
- </tr>
-</table>
-<table>
-	<tr>
-    <td><a href="images/1002.png"><img src="images/1002-tn.png" height="256"
-    width="256" ></img></a><p>The second receiver is placed. </p></td>
-    <td><a href="images/1003.png"><img src="images/1003-tn.png" height="256"
-    width="256" ></img></a><p>The third receiver is placed. </p></td>
+    height="256" width="56" ></img></a><p>Arrangement of the
+    transmitters within the coordinate plane.</p></td>
+    <td><a href="images/0010.png"><img src="images/0010-tn.png" height="225"
+    width="400" ></img></a><p>Calculating the capture disks of the
+    transmitter pairs. </p></td>
+    <td><a href="images/0020.png"><img src="images/0020-tn.png" height="225"
+    width="400" ></img></a><p>Generating potential receiver locations
+    from the capture disks.</p></td>
+    <td><a href="images/1001.png"><img src="images/1001-tn.png" height="225"
+    width="400" ></img></a><p>The first receiver is placed.</p></td>
   </tr>
 </table>
 <table>
-	<tr>
-    <td><a href="images/1004.png"><img src="images/1004-tn.png" height="256"
-    width="256" ></img></a><p>The fourth receiver is placed. </p></td>
-    <td><a href="images/1005.png"><img src="images/1005-tn.png" height="256"
-    width="256" ></img></a><p>The fifth receiver is placed. </p></td>
+  <tr>
+    <td><a href="images/1002.png"><img src="images/1002-tn.png" height="225"
+    width="400" ></img></a><p>The second receiver is placed.</p></td>
+    <td><a href="images/1003.png"><img src="images/1003-tn.png" height="225"
+    width="400" ></img></a><p>The third receiver is placed.</p></td>
+    <td><a href="images/1004.png"><img src="images/1004-tn.png" height="225"
+    width="400" ></img></a><p>The fourth receiver is placed.</p></td>
+    <td><a href="images/1005.png"><img src="images/1005-tn.png" height="225"
+    width="400" ></img></a><p>The fifth and final receiver is placed.</p></td>
+  </tr>
+</table>
+<p>Some slightly nicer-looking screenshots using different numbers of
+transmitters and receivers.</p>
+<table>
+  <tr>
+    <td><a href="images/screenshot4.png"><img src="images/screenshot4-tn.png" height="225"
+    width="400" ></img></a><p>30 transmitters, 15 receivers.</p></td>
+    <td><a href="images/screenshot1.png"><img src="images/screenshot1-tn.png" height="225"
+    width="400" ></img></a><p>20 transmitters, 12 receivers.</p></td>
+    <td><a href="images/screenshot2.png"><img src="images/screenshot2-tn.png" height="225"
+    width="400" ></img></a><p>15 transmitters, 8 receivers.</p></td>
+    <td><a href="images/screenshot3.png"><img src="images/screenshot3-tn.png" height="225"
+    width="400" ></img></a><p>10 transmitters, 6 receivers.</p></td>
   </tr>
 </table>
 
@@ -283,11 +299,10 @@ randomly placed around the area.</p>
   capture disks.  These are treated as possible solution points for placing
   receivers, and each one is evaluated.  The ones shown in the screenshots were
   not chosen.</li>
-<!--  <li>Red Circles - These are capture disks that don't include any chosen
+  <li>Red Circles - These are capture disks that don't include any chosen
   receivers.  This is what I was looking for when I wrote the visualization,
   because I wanted to see why the coverage rate was so low even with a lot of
-	receivers.</li>
--->
+  receivers.</li>
   <li>Yellow Lines - These originate at the receiver locations and terminate
   at the centers of the capture disks that contain the receiver.</li>
 </ul>
