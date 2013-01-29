@@ -63,6 +63,28 @@ capture disks, and select the maximum.  Remove this point and its associated
 disks and repeat until you've found enough receivers or run out of disks or
 solution points.</p>
 
+<h3>Speeding Things Up</h3>
+<p>The original algorithm, while provably half-optimal, suffers from the
+significant practical drawback of requiring O(n<sup>6</sup>) time complexity
+to run.  What this means is that if we want to simulate 100 transmitters
+(n &eq; 100), then we may require at most 1 trillion (1x10<sup>12</sup>)
+computations.  To explain, 100 transmitters will generate 10,000 capture
+disks.  For each disk, it may intersect every other disk, resulting in
+100,000,000 solution points.  These solution points must then be compared to
+each of the 10,000 disks, resulting in 1,000,000,000,000 comparisons.
+This makes the original algorithm impractical for
+implementation for any large number of devices (e.g., 1000).</p>
+
+<p>A simple way to reduce the running time is to reduce the number of points
+to evaluate, since this is a dominant portion of the time complexity.  A
+simple way to do this is to produce a "grid" of fixed points that will be
+evaluated during the simulation.  The grid's point density can be adjusted
+appropriate to the actual deployment or the radio wavelength being used.  The
+option is available using the "grid" or "recursive" algorithm values.  The
+"recursive" option uses an adaptive grid search algorithm to identify local
+maxima in the search space.</p>
+
+
 <h2>Compiling</h2>
 <p>The code is built most easily with <a href="http://maven.apache.org">Apache
 Maven</a>.  In the main directory, just type:
@@ -76,12 +98,17 @@ directory should have at least 2 JAR archives: with dependencies and without.
 The simplest way to execute the application is the jar-with-dependencies
 archive.  It takes a single parameter, a configuration file (a <a
 href="https://github.com/romoore/jun-simulate/blob/master/src/main/resources/config.xml">sample is
-included</a>) which holds all of the runtime parameters.  If your
+included</a>) which holds the primary runtime parameters.  If your
 configuration file is "myconfig.xml", then run the application like this:
 <pre><code>java -jar jun-simulate-1.0.0-SNAPSHOT-jar-with-dependencies.jar myconfig.xml</code></pre>
-you should see output on the console almost immediately.</p>
+you should see output on the console almost immediately. Two other
+configuration files are also used: graphics.xml and log4j.xml.  Graphics.xml
+is used to configure graphical options (output images) for the simulation, and
+log4j.xml is used to control the logging behavior of the program (at compile
+time).</p>
 
-<h3>The Configuration File</h3>
+<h3>Main Configuration File</h3>
+
 <p>The configuration file is an XML-based set of runtime parameters. An
 example is provided in the source, and this section is a description of each
 parameter in more detail.</p>
@@ -120,18 +147,10 @@ parameter in more detail.</p>
   <dt>universeHeight: float</dt>
   <dd>The height of the "universe" in which receivers may be placed.  Should
   be greater than <em>squareHeight</em>.</dd>
-  <dt>renderWidth: int</dt>
-  <dd>Pixel width of output images.</dd>
-  <dt>renderHeight: int</dt>
-  <dd>Pixel height of output images.</dd>
   <dt>randomSeed: int</dt>
   <dd>A seed for the random number generator.  Allows repeatable experiments.
   The random number generator is used for transmitter coordinate
   generation.</dd>
-  <dt>showDisplay: boolean</dt>
-  <dd>Determines whether the simulator should run in a very simple
-  interactive/debug mode (<em>true</em>) or just generate output
-  (<em>false</em>).</dd>
   <dt>numTrials: integer</dt>
   <dd>The number of simulations to run before computing aggregate
   statistics.</dd>
@@ -140,21 +159,89 @@ parameter in more detail.</p>
   comma-separated values (CSV) format.</dd>
   <dt>numThreads: integer</dt>
   <dd>The number of threads to spawn to perform the simulation.</dd>
+  <dt>maxRangeMeters: float</dt>
+  <dd>The maximum distance a receiver can receive packets from a transmitter.
+  This is applied to the dimensions above, so be sure to use a sensible value
+	for your simulation.</dd>
+	<dt>experimentType: string</dt>
+	<dd>The name of the algorithm to use for the simulated experiment.  Can be
+	one of the following options:
+	<ul>
+		<li>"basic" - The standard algorithm as described above.</li>
+		<li>"binned" - A slight optimization of the basic algorithm that ranks
+		points and places them into groups based on their scores.</li>
+		<li>"grid" - A grid-based algorithm using a fixed set of grid points.
+		Described above.</li>
+		<li>"recursive" - An adaptive grid-based algorithm that performs localized
+		searches for local maxima in the search space.</li>
+	</ul>
+	</dd>
+	<dt>gridDensity: integer</dt>
+	<dd>Number of points per "unit" in the standard grid algorithm, or for the
+	entire "universe" in the adaptive (recursive) grid algorithm.</dd>
+	<dt>randomized: boolean</dt>
+	<dd>Whether or not the adaptive grid-based algorithm should use randomized
+	grid positions</dd>
+	<dt>renderConfig: string</dt>
+	<dd>The path to the graphics configuration file (described below).  The path
+	can be either absolute or relatie from the working directory.</dd>
+	<dt>transmittersFile: string</dt>
+	<dd>The filename (and possibly path) for the transmitters file to be used in
+	the experiment.  If it exists, it will be used as transmitter position
+	inputs, otherwise it will be an output for the random transmitter
+	positions.</dd>
+	<dt>receiversFile: string</dt>
+	<dd>The filename (and possibly path) for the receivers file containing the
+	calculated receiver positions for the experiment.</dd>
+	<dt>outputBasePath: string</dt>
+	<dd>The base path for output files.  Defaults to the working directory if
+	not specified.</dd>
+</dl>
+
+<h3>Graphics Configuration File</h3>
+
+<p>The graphics configuration file specifies how the application will generate
+graphical representations of the simulations.  If enabled, the application
+will generate an image (rasterized PNG) after the determination of each
+receiver position.  Image files are named numerically, starting with
+"1000.png" containing only the transmitter positions, and incrementing by one
+for each receiver placed.</p>
+
+<dl>
   <dt>generateImages: boolean</dt>
   <dd>If <em>true</em>, then the simulator will produce PNG files in a
   subdirectory of its working directory according to the parameters it is
   using. The directory name is "sX_tY_xZ" where X is the random seed, Y is the
   number of transmitters, and Z is the trial number.</dd>
-  <dt>maxRangeMeters: float</dt>
-  <dd>The maximum distance a receiver can receive packets from a transmitter.
-  This is applied to the dimensions above, so be sure to use a sensible value
-  for your simulation.</dd>
+  <dt>renderWidth: int</dt>
+  <dd>Pixel width of output images.</dd>
+  <dt>renderHeight: int</dt>
+	<dd>Pixel height of output images.</dd>
+	<dt>drawTransmitters: boolean</dt>
+	<dd>Flag to enable drawing of transmitter locations in the output
+	images.</dd>
+	<dt>drawReceivers: boolean</dt>
+	<dd>Flag to enable drawing of receiver lcoations in the output images.</dd>
+	<dt>drawReceiverLines: boolean</dt>
+	<dd>Flag to enable drawing of lines from receiver locations to capture disk
+	centers.</dd>
+	<dt>drawSolutionPoints: boolean</dt>
+	<dd>Flag to draw positions of all possible solutions points in output
+	images.</dd>
+	<dt>drawLegend: boolean</dt>
+	<dd>Flag to draw the solution point ranking histogram and legend on output
+	images.</dd>
+	<dt>useColorMode: boolean</dt>
+	<dd>Flag to enable color output for images.  If false, output images will be
+	rendered in grayscale.</dd>
+	<dt>drawCaptureDisks: boolean</dt>
+	<dd>Flag to draw the capture disks in the output images.</dd>
 </dl>
 
 <h2>Screenshots</h2>
 <p> The screenshots below are available when the configuration parameter
 <code>generateImages</code> is set to <code>true</code>. The simulator will
-generate 1920x1080 px PNG images for each step of the algorithm.</p>
+generate PNG images for each step of the algorithm.</p>
 
 <p>Below is a set of images taken from an example run with 5 transmitters
 randomly placed around the area.</p>
