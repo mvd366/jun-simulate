@@ -199,6 +199,16 @@ public class BasicExperiment implements Experiment {
         }
       }
     }
+    if (Main.gfxConfig.generateImages) {
+      display.setTransmitters(this.config.transmitters);
+      display.setCaptureDisks(disks);
+
+      final String saveName = this.saveDirectory
+          + File.separator + "1000";
+      Main.saveImage( display, saveName);
+      display.clear();
+
+    }
     log.info("[" + this.config.trialNumber + "] Generated "
         + disks.size() + " disks.");
     

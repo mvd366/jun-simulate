@@ -49,23 +49,27 @@ public class FileRenderer {
   private List<Integer> ranks = null;
   private Collection<Receiver> receiverPoints = new LinkedList<Receiver>();
   private Collection<CaptureDiskGroup> groups = new LinkedList<CaptureDiskGroup>();
-  
-  private static final ColorSet colorSet = new ColorSet();
+
+  static final ColorSet colorSet = new ColorSet();
 
   public static Color getColorForPercent(final float percent) {
 
     return colorSet.getColorForPercent(percent);
   }
 
+  public static float getThicknessForPercent(final float percent) {
+    return colorSet.getThicknessForPercent(percent);
+  }
+
   public static float getRadiusForPercent(final float percent) {
     return colorSet.getRadiusForPercent(percent);
   }
-  
-  public static Color getStrokeColor(){
+
+  public static Color getStrokeColor() {
     return colorSet.getStrokeColor();
   }
-  
-  public static Color getReceiverColor(){
+
+  public static Color getReceiverColor() {
     return colorSet.getReceiverColor();
   }
 
@@ -105,7 +109,7 @@ public class FileRenderer {
       g2.translate(marginX / 2, 0);
     }
     // Tall-screen
-    else { //if (displayRatio < 0.999f) {
+    else { // if (displayRatio < 0.999f) {
       scale = width / Main.config.universeWidth;
       int marginY = height - (int) (Main.config.universeHeight * scale);
       g2.translate(0, marginY / 2);
@@ -162,18 +166,18 @@ public class FileRenderer {
       }
     }
 
+    if (this.config.isDrawReceivers()) {
+      g2.setColor(colorSet.getFontColor());
+      for (Receiver p : this.receiverPoints) {
+        p.draw(g2, scale, scale);
+      }
+    }
+
     // Transmitters
     if (this.config.isDrawTransmitters()) {
       g2.setColor(colorSet.getFontColor());
       for (Drawable d : this.devices) {
         d.draw(g2, scale, scale);
-      }
-    }
-
-    if (this.config.isDrawReceivers()) {
-      g2.setColor(colorSet.getFontColor());
-      for (Receiver p : this.receiverPoints) {
-        p.draw(g2, scale, scale);
       }
     }
 

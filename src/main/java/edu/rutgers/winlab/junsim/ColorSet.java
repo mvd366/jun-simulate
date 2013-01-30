@@ -28,6 +28,8 @@ public class ColorSet {
   private static final Color FONT_COLOR = Color.BLACK;
 
   public static final float[] RING_LIMITS = new float[] { 0.25f, 0.5f, 0.9f };
+  
+  public static final float[] LINE_THICKNESS = new float[] {1f, 2f, 3f, 4f};
 
   public static final Color[] RING_COLORS = new Color[] { Color.LIGHT_GRAY,
       Color.RED, Color.ORANGE, Color.GREEN };
@@ -76,6 +78,17 @@ public class ColorSet {
       }
     }
     return returnedColor;
+  }
+  
+  public float getThicknessForPercent(final float percent) {
+    float thickness = LINE_THICKNESS[0];
+    for(int i = RING_LIMITS.length -1; i >= 0; --i){
+      if (percent >= RING_LIMITS[i]) {
+        thickness = LINE_THICKNESS[i];
+        break;
+      }
+    }
+    return thickness;
   }
 
   public float getRadiusForPercent(final float percent) {

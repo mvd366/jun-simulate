@@ -17,11 +17,15 @@
  */
 package edu.rutgers.winlab.junsim;
 
+import java.awt.AlphaComposite;
 import java.awt.Color;
+import java.awt.Composite;
+import java.awt.FontMetrics;
 import java.awt.Graphics2D;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -54,8 +58,16 @@ public class Transmitter extends Point2D.Float implements Drawable {
     
     g.setColor(origColor);
     AffineTransform origTransform = g.getTransform();
-    g.translate((int) (this.getX() * scaleX), (int) (this.getY() * scaleY));
-    g.drawString(String.format("T(%.2f)", this.getCaptureRatio()), radius, -radius);
+    g.translate((int) (this.getX() * scaleX)+radius, (int) (this.getY() * scaleY)-radius);
+    FontMetrics metrics = g.getFontMetrics();
+    Rectangle2D.Float box = (Rectangle2D.Float)metrics.getStringBounds(String.format("T(%.2f)", this.getCaptureRatio()),null);
+    g.setColor(FileRenderer.colorSet.getBackgroundColor());
+    Composite origComposite = g.getComposite();
+    g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.5f));
+    g.fill(box);
+    g.setColor(origColor);
+    g.setComposite(origComposite);
+    g.drawString(String.format("T(%.2f)", this.getCaptureRatio()),0,0);
     g.setTransform(origTransform);
 
   }

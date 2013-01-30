@@ -17,14 +17,20 @@
  */
 package edu.rutgers.winlab.junsim;
 
+import java.awt.AlphaComposite;
+import java.awt.BasicStroke;
 import java.awt.Color;
+import java.awt.Composite;
+import java.awt.FontMetrics;
 import java.awt.Graphics2D;
 import java.awt.Polygon;
+import java.awt.Stroke;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.GeneralPath;
 import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -64,6 +70,7 @@ public class Receiver extends Point2D.Float implements Drawable {
 
     }
     coverageCount = coverageCounts.size();
+    Stroke origStroke = g.getStroke();
     if (Main.gfxConfig.isDrawReceiverLines()) {
       for (Transmitter tx : coverageCounts.keySet()) {
         int totalDisks = tx.getDisks().size();
@@ -72,27 +79,47 @@ public class Receiver extends Point2D.Float implements Drawable {
 
         Line2D line = new Line2D.Double(tx.getX() * scaleX, tx.getY() * scaleY,
             this.getX() * scaleX, this.getY() * scaleY);
-
+        g.setStroke(new BasicStroke(FileRenderer
+            .getThicknessForPercent(coverageRate), BasicStroke.CAP_ROUND,
+            BasicStroke.JOIN_ROUND));
         g.setColor(FileRenderer.getColorForPercent(coverageRate));
         g.draw(line);
 
       }
     }
+    g.setStroke(origStroke);
 
     if (Main.gfxConfig.isDrawReceivers()) {
       float size = FileRenderer.getRadiusForPercent(1f);
       GeneralPath triangle = new GeneralPath(GeneralPath.WIND_EVEN_ODD, 3);
-      triangle.moveTo(this.getX() * scaleX - size, this.getY() * scaleY + size);
-      triangle.lineTo(this.getX() * scaleX + size, this.getY() * scaleY + size);
-      triangle.lineTo(this.getX() * scaleX, this.getY() * scaleY - size);
+      triangle.moveTo(-size, size);
+      triangle.lineTo(size, size);
+      triangle.lineTo(0, -size);
       triangle.closePath();
       g.setColor(FileRenderer.getReceiverColor());
-      g.fill(triangle);
+      
 
+      
+      
+
+      g.translate((int) (this.getX() * scaleX), (int) (this.getY() * scaleY));
+      g.fill(triangle);
       g.setColor(origColor);
       g.draw(triangle);
-      g.drawString("R" + this.coveringDisks.size()+"/"+coverageCount, (int) (this.getX() * scaleX + size),
-          (int) (this.getY() * scaleY - size));
+
+      FontMetrics metrics = g.getFontMetrics();
+      final String drawnString = "R" + this.coveringDisks.size() + "/"
+          + coverageCount;
+      Rectangle2D.Float box = (Rectangle2D.Float) metrics.getStringBounds(
+          drawnString, null);
+      g.setColor(FileRenderer.colorSet.getBackgroundColor());
+      Composite origComposite = g.getComposite();
+      g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.5f));
+      g.translate((int) size, (int) -size);
+      g.fill(box);
+      g.setColor(origColor);
+      g.setComposite(origComposite);
+      g.drawString(drawnString, 0, 0);
     }
     g.setColor(origColor);
     g.setTransform(origTransform);

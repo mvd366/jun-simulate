@@ -200,14 +200,7 @@ public class BinnedRecurGridExperiment implements Experiment {
   public Boolean perform() {
     // final ExperimentRender display = new AnimatedRenderer(Main.gfxConfig);
 
-    if (Main.gfxConfig.generateImages) {
-      this.render.setTransmitters(this.config.transmitters);
-
-      final String saveName = this.saveDirectory + File.separator + "1000";
-      Main.saveImage(this.render, saveName);
-      this.render.clear();
-
-    }
+    
 
     final Collection<CaptureDisk> disks = new HashSet<CaptureDisk>();
     // Compute all possible capture disks
@@ -218,6 +211,16 @@ public class BinnedRecurGridExperiment implements Experiment {
           disks.add(someDisk);
         }
       }
+    }
+    
+    if (Main.gfxConfig.generateImages) {
+      this.render.setTransmitters(this.config.transmitters);
+      this.render.setCaptureDisks(disks);
+
+      final String saveName = this.saveDirectory + File.separator + "1000";
+      Main.saveImage(this.render, saveName);
+      this.render.clear();
+
     }
     log.info("[" + this.config.trialNumber + "] Generated " + disks.size()
         + " disks.");
