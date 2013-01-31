@@ -166,18 +166,18 @@ public class FileRenderer {
       }
     }
 
-    if (this.config.isDrawReceivers()) {
-      g2.setColor(colorSet.getFontColor());
-      for (Receiver p : this.receiverPoints) {
-        p.draw(g2, scale, scale);
-      }
-    }
-
     // Transmitters
     if (this.config.isDrawTransmitters()) {
       g2.setColor(colorSet.getFontColor());
       for (Drawable d : this.devices) {
         d.draw(g2, scale, scale);
+      }
+    }
+    
+    if (this.config.isDrawReceivers()) {
+      g2.setColor(colorSet.getFontColor());
+      for (Receiver p : this.receiverPoints) {
+        p.draw(g2, scale, scale);
       }
     }
 

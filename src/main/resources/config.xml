@@ -59,7 +59,9 @@
 			 * "clustered 0.1 0.2" - randomly clustered transmitters, 10% (0.1) are
 			   clustered, and clustering is within 20% (0.2) units of the average
 				 dimensions of the simulation (height+widht)/2 from some other 
-				 transmitter. -->
+				 transmitter. 
+			 * "rectangled .5" - randomly distributed transmitters within a rectangle of
+			   some "width", defined from the outside edge of the transmitter square. -->
   <transmitterDistribution>uniform</transmitterDistribution>
 </edu.rutgers.winlab.junsim.Config>
 

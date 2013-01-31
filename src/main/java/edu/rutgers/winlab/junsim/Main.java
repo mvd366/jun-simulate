@@ -218,7 +218,22 @@ public class Main {
           }
           transmitters = Main.generateClusteredTransmitterLocations(
               Main.config.numTransmitters, probability, radius);
-        } else {
+        } 
+        // "Rectangled" distribution (inside big box, outside small box)
+        else if(Main.config.getTransmitterDistribution().startsWith("rectangled")){
+          float width = Math.min(Main.config.squareWidth, Main.config.squareHeight)*.1f;
+          
+          String[] parts = Main.config.getTransmitterDistribution().split("\\s");
+          if(parts.length > 1 && parts[1].length() > 0){
+            width = Float.parseFloat(parts[1]);
+            
+          }
+          transmitters = Main.generateRectangledTransmitterLocations(
+              Main.config.numTransmitters, width);
+        }
+        
+        // Basic uniform random distribution
+        else {
           transmitters = Main
               .generateUniformTransmitterLocations(Main.config.numTransmitters);
         }
@@ -392,6 +407,53 @@ public class Main {
         }
       }
 
+      txers.add(txer);
+    }
+    return txers;
+  }
+  
+  /**
+   * Randomly generate the locations of {@code numTransmitters} within the
+   * bounding square, clustered around other transmitters.  The two variables, {@code clusterProb}
+   * and {@code radiusPct} dictate the clustering frequency and density.
+   * 
+   * @param numTransmitters
+   *          the number of transmitters to generate.
+   * @param widthPct
+   *          the width of the rectangular area.
+   *          
+   * @return an array of {@code Transmitter} objects randomly positioned.
+   */
+  static Collection<Transmitter> generateRectangledTransmitterLocations(
+      final int numTransmitters, final float width) {
+    float usedWidth = width;
+    if(usedWidth <= 0){
+      usedWidth = 1f;
+    }
+    if(usedWidth > Math.min(Main.config.squareWidth/2, Main.config.squareHeight/2)){
+      usedWidth = Math.min(Main.config.squareWidth/2,Main.config.squareHeight/2);
+    }
+    
+    
+    LinkedList<Transmitter> txers = new LinkedList<Transmitter>();
+    Transmitter txer = null;
+    
+    float xOffset = (Main.config.universeWidth - Main.config.squareWidth) * .5f;
+    float yOffset = (Main.config.universeHeight - Main.config.squareHeight) * .5f;
+    for (int i = 0; i < numTransmitters; ++i) {
+
+      txer = new Transmitter();
+      txer.x = xOffset + rand.nextFloat()*Main.config.squareWidth;
+      txer.y = yOffset + rand.nextFloat()*Main.config.squareHeight;
+ 
+      
+      if(txer.x > (xOffset + usedWidth)  && txer.x < (Main.config.squareWidth + xOffset - usedWidth) && txer.y > (yOffset + usedWidth) &&
+          txer.y < (Main.config.squareHeight + yOffset - usedWidth)){
+        --i;
+        continue;
+      }
+      
+    
       txers.add(txer);
     }
     return txers;
