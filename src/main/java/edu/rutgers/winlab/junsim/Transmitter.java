@@ -20,6 +20,7 @@ package edu.rutgers.winlab.junsim;
 import java.awt.AlphaComposite;
 import java.awt.Color;
 import java.awt.Composite;
+import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics2D;
 import java.awt.geom.AffineTransform;
@@ -43,6 +44,7 @@ public class Transmitter extends Point2D.Float implements Drawable {
 
   @Override
   public void draw(Graphics2D g, float scaleX, float scaleY) {
+    Font origFont = g.getFont();
     Color origColor = g.getColor();
     float captureRatio = this.getCaptureRatio();
     float x = (float) this.getX() * scaleX;
@@ -59,16 +61,23 @@ public class Transmitter extends Point2D.Float implements Drawable {
     g.setColor(origColor);
     AffineTransform origTransform = g.getTransform();
     g.translate((int) (this.getX() * scaleX)+radius, (int) (this.getY() * scaleY)-radius);
+    
+    Font myFont = new Font("Serif", Font.BOLD, 12);
+    g.setFont(myFont);
+    
     FontMetrics metrics = g.getFontMetrics();
-    Rectangle2D.Float box = (Rectangle2D.Float)metrics.getStringBounds(String.format("T(%.2f)", this.getCaptureRatio()),null);
+    Rectangle2D.Float box = (Rectangle2D.Float)metrics.getStringBounds(String.format("%.2f", this.getCaptureRatio()),null);
+//    Rectangle2D.Float box = (Rectangle2D.Float)metrics.getStringBounds(String.format("T(%.2f)", this.getCaptureRatio()),null);
     g.setColor(FileRenderer.colorSet.getBackgroundColor());
     Composite origComposite = g.getComposite();
     g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.5f));
     g.fill(box);
     g.setColor(origColor);
     g.setComposite(origComposite);
-    g.drawString(String.format("T(%.2f)", this.getCaptureRatio()),0,0);
+//    g.drawString(String.format("T(%.2f)", this.getCaptureRatio()),0,0);
+    g.drawString(String.format("%.2f", this.getCaptureRatio()),0,0);
     g.setTransform(origTransform);
+    g.setFont(origFont);
 
   }
 

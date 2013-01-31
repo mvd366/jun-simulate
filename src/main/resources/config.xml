@@ -61,7 +61,11 @@
 				 dimensions of the simulation (height+widht)/2 from some other 
 				 transmitter. 
 			 * "rectangled .5" - randomly distributed transmitters within a rectangle of
-			   some "width", defined from the outside edge of the transmitter square. -->
+			   some "width", defined from the outside edge of the transmitter square. 
+			 * "circled .5" - randomly distributed transmitters within an ellipse of
+				 some "width", defined from teh outside edge of the transmitter square. 
+			 * "sine 1" - randomly distributed transmitters along a "sine" wave within
+				 the coordinate space. -->
   <transmitterDistribution>uniform</transmitterDistribution>
 </edu.rutgers.winlab.junsim.Config>
 

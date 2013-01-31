@@ -90,7 +90,7 @@ public class Receiver extends Point2D.Float implements Drawable {
     g.setStroke(origStroke);
 
     if (Main.gfxConfig.isDrawReceivers()) {
-      float size = FileRenderer.getRadiusForPercent(1f);
+      float size = FileRenderer.getRadiusForPercent(1f)*1.2f;
       GeneralPath triangle = new GeneralPath(GeneralPath.WIND_EVEN_ODD, 3);
       triangle.moveTo(-size, size);
       triangle.lineTo(size, size);
@@ -119,7 +119,7 @@ public class Receiver extends Point2D.Float implements Drawable {
       g.fill(box);
       g.setColor(origColor);
       g.setComposite(origComposite);
-      g.drawString(drawnString, 0, 0);
+//      g.drawString(drawnString, 0, 0);
     }
     g.setColor(origColor);
     g.setTransform(origTransform);

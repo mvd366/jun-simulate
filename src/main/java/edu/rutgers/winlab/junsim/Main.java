@@ -19,6 +19,7 @@ package edu.rutgers.winlab.junsim;
 
 import java.awt.Dimension;
 import java.awt.Graphics;
+import java.awt.geom.Ellipse2D;
 import java.awt.geom.Point2D;
 import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
@@ -206,32 +207,64 @@ public class Main {
       // Randomly generate transmitter locations
       if (generateTransmitters) {
         if (Main.config.getTransmitterDistribution().startsWith("clustered")) {
-          
+
           float probability = 0.5f;
           float radius = 0.1f;
-          String[] parts = Main.config.getTransmitterDistribution().split("\\s");
-          if(parts.length > 1 && parts[1].length() > 0){
+          String[] parts = Main.config.getTransmitterDistribution()
+              .split("\\s");
+          if (parts.length > 1 && parts[1].length() > 0) {
             probability = Float.parseFloat(parts[1]);
-            if(parts.length > 2 && parts[2].length() > 0){
+            if (parts.length > 2 && parts[2].length() > 0) {
               radius = Float.parseFloat(parts[2]);
             }
           }
           transmitters = Main.generateClusteredTransmitterLocations(
               Main.config.numTransmitters, probability, radius);
-        } 
+        }
         // "Rectangled" distribution (inside big box, outside small box)
-        else if(Main.config.getTransmitterDistribution().startsWith("rectangled")){
-          float width = Math.min(Main.config.squareWidth, Main.config.squareHeight)*.1f;
-          
-          String[] parts = Main.config.getTransmitterDistribution().split("\\s");
-          if(parts.length > 1 && parts[1].length() > 0){
+        else if (Main.config.getTransmitterDistribution().startsWith(
+            "rectangled")) {
+          float width = Math.min(Main.config.squareWidth,
+              Main.config.squareHeight) * .1f;
+
+          String[] parts = Main.config.getTransmitterDistribution()
+              .split("\\s");
+          if (parts.length > 1 && parts[1].length() > 0) {
             width = Float.parseFloat(parts[1]);
-            
+
           }
           transmitters = Main.generateRectangledTransmitterLocations(
               Main.config.numTransmitters, width);
         }
-        
+        // "Circled" distribution (inside big box, outside small box)
+        else if (Main.config.getTransmitterDistribution().startsWith("circled")) {
+          float width = Math.min(Main.config.squareWidth,
+              Main.config.squareHeight) * .1f;
+
+          String[] parts = Main.config.getTransmitterDistribution()
+              .split("\\s");
+          if (parts.length > 1 && parts[1].length() > 0) {
+            width = Float.parseFloat(parts[1]);
+
+          }
+          transmitters = Main.generateCircledTransmitterLocations(
+              Main.config.numTransmitters, width);
+        }
+        // "Sine wave" distribution
+        else if (Main.config.getTransmitterDistribution().startsWith("sine")) {
+          float radius = Math.min(Main.config.squareWidth,
+              Main.config.squareHeight) * .2f;
+
+          String[] parts = Main.config.getTransmitterDistribution()
+              .split("\\s");
+          if (parts.length > 1 && parts[1].length() > 0) {
+            radius = Float.parseFloat(parts[1]);
+
+          }
+          transmitters = Main.generateSineTransmitterLocations(
+              Main.config.numTransmitters, radius);
+        }
+
         // Basic uniform random distribution
         else {
           transmitters = Main
@@ -338,46 +371,52 @@ public class Main {
 
   /**
    * Randomly generate the locations of {@code numTransmitters} within the
-   * bounding square, clustered around other transmitters.  The two variables, {@code clusterProb}
-   * and {@code radiusPct} dictate the clustering frequency and density.
-   * 
-   * <p>The first parameter, {@code clusterProb}, determines the probability that a
-   * transmitter will be placed in a "clustered" location near another transmitter.  If this
-   * value were 0.2, then there is a 20% probability a transmitter is placed "near" another,
-   * and an 80% chance that it will be placed at a random location.</p>
-   * 
-   * <p>The second parameter, {@code radiusPct}, determines the maximum radius that
-   * the clustered transmitter will be placed with respect to another transmitter.  This
-   * range (radius) is expressed as a fraction of the average o the coordinate
-   * dimensions.</p>
+   * bounding square, clustered around other transmitters. The two variables,
+   * {@code clusterProb} and {@code radiusPct} dictate the clustering frequency
+   * and density.
+   * <p>
+   * The first parameter, {@code clusterProb}, determines the probability that a
+   * transmitter will be placed in a "clustered" location near another
+   * transmitter. If this value were 0.2, then there is a 20% probability a
+   * transmitter is placed "near" another, and an 80% chance that it will be
+   * placed at a random location.
+   * </p>
+   * <p>
+   * The second parameter, {@code radiusPct}, determines the maximum radius that
+   * the clustered transmitter will be placed with respect to another
+   * transmitter. This range (radius) is expressed as a fraction of the average
+   * o the coordinate dimensions.
+   * </p>
    * 
    * @param numTransmitters
    *          the number of transmitters to generate.
    * @param clusterProb
    *          the probability of placing a transmitter "near" to another rather
    *          than randomly around the coordinate space.
-   *          @param radiusPct the percent of the average width/height to use when clustering transmitters.
-   *          
+   * @param radiusPct
+   *          the percent of the average width/height to use when clustering
+   *          transmitters.
    * @return an array of {@code Transmitter} objects randomly positioned.
    */
   static Collection<Transmitter> generateClusteredTransmitterLocations(
       final int numTransmitters, final float clusterProb, final float radiusPct) {
     float usedCluster = clusterProb;
-    if(usedCluster < 0){
+    if (usedCluster < 0) {
       usedCluster = 0f;
-    }else if(usedCluster > 1){
+    } else if (usedCluster > 1) {
       usedCluster = 1f;
     }
     float usedRadius = radiusPct;
-    if(usedRadius < 0){
+    if (usedRadius < 0) {
       usedRadius = .1f;
-    }else if(usedRadius > 1){
+    } else if (usedRadius > 1) {
       usedRadius = 1f;
     }
-    
+
     LinkedList<Transmitter> txers = new LinkedList<Transmitter>();
     Transmitter txer = null;
-    float maxRadius = ((Main.config.squareWidth + Main.config.squareHeight) / 2) * usedRadius;
+    float maxRadius = ((Main.config.squareWidth + Main.config.squareHeight) / 2)
+        * usedRadius;
     float xOffset = (Main.config.universeWidth - Main.config.squareWidth) * .5f;
     float yOffset = (Main.config.universeHeight - Main.config.squareHeight) * .5f;
     for (int i = 0; i < numTransmitters; ++i) {
@@ -394,16 +433,16 @@ public class Main {
         float radius = rand.nextFloat() * maxRadius;
         float theta = (float) (rand.nextFloat() * 2 * Math.PI);
         txer.x = randTx.x + (float) (Math.cos(theta) * radius);
-        if(txer.x > Main.config.squareWidth + xOffset){
+        if (txer.x > Main.config.squareWidth + xOffset) {
           txer.x = Main.config.squareWidth;
-        }else if(txer.x < 0){
-          txer.x = 0;
+        } else if (txer.x < xOffset) {
+          txer.x = xOffset;
         }
         txer.y = randTx.y + (float) (Math.sin(theta) * radius);
-        if(txer.y > Main.config.squareHeight + yOffset){
+        if (txer.y > Main.config.squareHeight + yOffset) {
           txer.y = Main.config.squareHeight;
-        }else if(txer.y < 0){
-          txer.y = 0;
+        } else if (txer.y < yOffset) {
+          txer.y = yOffset;
         }
       }
 
@@ -411,49 +450,178 @@ public class Main {
     }
     return txers;
   }
-  
+
   /**
    * Randomly generate the locations of {@code numTransmitters} within the
-   * bounding square, clustered around other transmitters.  The two variables, {@code clusterProb}
-   * and {@code radiusPct} dictate the clustering frequency and density.
+   * bounding square.
    * 
    * @param numTransmitters
    *          the number of transmitters to generate.
-   * @param widthPct
+   * @param width
    *          the width of the rectangular area.
-   *          
    * @return an array of {@code Transmitter} objects randomly positioned.
    */
   static Collection<Transmitter> generateRectangledTransmitterLocations(
       final int numTransmitters, final float width) {
     float usedWidth = width;
-    if(usedWidth <= 0){
+    if (usedWidth <= 0) {
       usedWidth = 1f;
     }
-    if(usedWidth > Math.min(Main.config.squareWidth/2, Main.config.squareHeight/2)){
-      usedWidth = Math.min(Main.config.squareWidth/2,Main.config.squareHeight/2);
+    if (usedWidth > Math.min(Main.config.squareWidth / 2,
+        Main.config.squareHeight / 2)) {
+      usedWidth = Math.min(Main.config.squareWidth / 2,
+          Main.config.squareHeight / 2);
     }
-    
-    
+
     LinkedList<Transmitter> txers = new LinkedList<Transmitter>();
     Transmitter txer = null;
-    
+
     float xOffset = (Main.config.universeWidth - Main.config.squareWidth) * .5f;
     float yOffset = (Main.config.universeHeight - Main.config.squareHeight) * .5f;
     for (int i = 0; i < numTransmitters; ++i) {
 
       txer = new Transmitter();
-      txer.x = xOffset + rand.nextFloat()*Main.config.squareWidth;
-      txer.y = yOffset + rand.nextFloat()*Main.config.squareHeight;
- 
-      
-      if(txer.x > (xOffset + usedWidth)  && txer.x < (Main.config.squareWidth + xOffset - usedWidth) && txer.y > (yOffset + usedWidth) &&
-          txer.y < (Main.config.squareHeight + yOffset - usedWidth)){
+      txer.x = xOffset + rand.nextFloat() * Main.config.squareWidth;
+      txer.y = yOffset + rand.nextFloat() * Main.config.squareHeight;
+
+      if (txer.x > (xOffset + usedWidth)
+          && txer.x < (Main.config.squareWidth + xOffset - usedWidth)
+          && txer.y > (yOffset + usedWidth)
+          && txer.y < (Main.config.squareHeight + yOffset - usedWidth)) {
         --i;
         continue;
       }
+
+      txers.add(txer);
+    }
+    return txers;
+  }
+
+  /**
+   * Randomly generate the locations of {@code numTransmitters} within the
+   * bounding circles.
+   * 
+   * @param numTransmitters
+   *          the number of transmitters to generate.
+   * @param width
+   *          the width of the circular area.
+   * @return an array of {@code Transmitter} objects randomly positioned.
+   */
+  static Collection<Transmitter> generateCircledTransmitterLocations(
+      final int numTransmitters, final float width) {
+    float usedWidth = width;
+    if (usedWidth <= 0) {
+      usedWidth = 1f;
+    }
+    if (usedWidth > Math.min(Main.config.squareWidth / 2,
+        Main.config.squareHeight / 2)) {
+      usedWidth = Math.min(Main.config.squareWidth / 2,
+          Main.config.squareHeight / 2);
+    }
+
+    LinkedList<Transmitter> txers = new LinkedList<Transmitter>();
+    Transmitter txer = null;
+
+    float xOffset = (Main.config.universeWidth - Main.config.squareWidth) * .5f;
+    float yOffset = (Main.config.universeHeight - Main.config.squareHeight) * .5f;
+
+    float xCenter = Main.config.universeWidth / 2;
+    float yCenter = Main.config.universeHeight / 2;
+
+    Ellipse2D.Float bigEllipse = new Ellipse2D.Float(xOffset, yOffset,
+        Main.config.squareWidth, Main.config.squareHeight);
+    Ellipse2D.Float smallEllipse = new Ellipse2D.Float(xOffset + usedWidth,
+        yOffset + usedWidth, Main.config.squareWidth - usedWidth * 2,
+        Main.config.squareHeight - usedWidth * 2);
+
+    for (int i = 0; i < numTransmitters; ++i) {
+
+      txer = new Transmitter();
+      txer.x = xOffset + rand.nextFloat() * Main.config.squareWidth;
+      txer.y = yOffset + rand.nextFloat() * Main.config.squareHeight;
+
+      // If the point is within the outer circle, but not the inner, then OK
+      if (bigEllipse.contains(txer) && !smallEllipse.contains(txer)) {
+
+        txers.add(txer);
+      }
+      // Otherwise try again.
+      else {
+        --i;
+        continue;
+      }
+    }
+    return txers;
+  }
+
+  /**
+   * Randomly generate the locations of {@code numTransmitters} along a sine
+   * wave.
+   * 
+   * @param numTransmitters
+   *          the number of transmitters to generate.
+   * @param radius
+   *          the radius of the waves
+   * @return an array of {@code Transmitter} objects randomly positioned.
+   */
+  static Collection<Transmitter> generateSineTransmitterLocations(
+      final int numTransmitters, final float radius) {
+
+    float usedRadius = radius;
+    if (usedRadius < 0) {
+      usedRadius = Math.min(Main.config.squareWidth / 4,
+          Main.config.squareHeight / 4);
+    } else if (usedRadius > Math.min(Main.config.squareWidth / 4,
+        Main.config.squareHeight / 4)) {
+      usedRadius = Math.min(Main.config.squareWidth / 4,
+          Main.config.squareHeight / 4);
+    }
+
+    LinkedList<Transmitter> txers = new LinkedList<Transmitter>();
+    Transmitter txer = null;
+
+    float xOffset = (Main.config.universeWidth - Main.config.squareWidth) * .5f;
+    float yOffset = (Main.config.universeHeight - Main.config.squareHeight) * .5f;
+    float wiggle = usedRadius * 0.1f;
+
+    float[] xCenter = { xOffset + Main.config.squareWidth / 4,
+        xOffset + 3 * Main.config.squareWidth / 4 };
+    float[] yCenter = { yOffset + Main.config.squareHeight / 2,
+        yOffset + Main.config.squareWidth / 2 };
+
+    for (int i = 0; i < numTransmitters; ++i) {
+
+      txer = new Transmitter();
+
+      // "Right" side
+      if (rand.nextBoolean()) {
+        float theta = rand.nextFloat() * (float) Math.PI;
+        float x = xCenter[1] + (float) Math.cos(theta) * usedRadius;
+        float y = yCenter[1] + (float) Math.sin(theta) * usedRadius;
+        txer.x = x - wiggle / 2 + rand.nextFloat() * wiggle;
+        txer.y = y - wiggle / 2 + rand.nextFloat() * wiggle;
+      }
+      // "Right" side
+      else {
+        float theta = -rand.nextFloat() * (float) Math.PI;
+        float x = xCenter[0] + (float) Math.cos(theta) * usedRadius;
+        float y = yCenter[0] + (float) Math.sin(theta) * usedRadius;
+        txer.x = x - wiggle / 2 + rand.nextFloat() * wiggle;
+        txer.y = y - wiggle / 2 + rand.nextFloat() * wiggle;
+      }
       
-    
+      if (txer.x > Main.config.squareWidth + xOffset) {
+        txer.x = Main.config.squareWidth;
+      } else if (txer.x < xOffset) {
+        txer.x = xOffset;
+      }
+      
+      if (txer.y > Main.config.squareHeight + yOffset) {
+        txer.y = Main.config.squareHeight;
+      } else if (txer.y < yOffset) {
+        txer.y = yOffset;
+      }
+
       txers.add(txer);
     }
     return txers;
