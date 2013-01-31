@@ -117,6 +117,17 @@ public class Config {
   String outputBasePath = "";
   
   /**
+   * Whether the transmitters are distributed uniformly random, or clustered.  Possible values:
+   * 
+   * <ul>
+   *  <li>uniform</li>
+   *  <li>clustered</li>
+   * </ul>
+   */
+  String transmitterDistribution = "uniform";
+  
+  
+  /**
    * Whether or not to randomize grid points.
    */
   boolean randomized=false;
@@ -239,5 +250,13 @@ public class Config {
 
   public void setOutputBasePath(String outputBasePath) {
     this.outputBasePath = outputBasePath;
+  }
+
+  public String getTransmitterDistribution() {
+    return transmitterDistribution;
+  }
+
+  public void setTransmitterDistribution(String transmitterDistribution) {
+    this.transmitterDistribution = transmitterDistribution;
   }
 }

@@ -54,5 +54,12 @@
   <!-- The base path for all input/output files (transmitters, receivers,
        images, statistics). -->
   <outputBasePath />
+  <!-- How the transmitter locations should be generated.  Options include:
+       * "uniform" - a uniformly random distribution of transmitters.
+			 * "clustered 0.1 0.2" - randomly clustered transmitters, 10% (0.1) are
+			   clustered, and clustering is within 20% (0.2) units of the average
+				 dimensions of the simulation (height+widht)/2 from some other 
+				 transmitter. -->
+  <transmitterDistribution>uniform</transmitterDistribution>
 </edu.rutgers.winlab.junsim.Config>
 

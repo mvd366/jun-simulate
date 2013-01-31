@@ -144,7 +144,7 @@ public class Main {
   public static void doSimulation() throws IOException {
     File outputFile = new File(Main.buildPath(Main.config.getOutputFileName()));
     if (!outputFile.exists()) {
-      if(outputFile.getParentFile()!=null){
+      if (outputFile.getParentFile() != null) {
         outputFile.getParentFile().mkdirs();
       }
       outputFile.createNewFile();
@@ -161,12 +161,12 @@ public class Main {
     PrintWriter receiverWriter = new PrintWriter(new FileWriter(
         Main.buildPath(config.getReceiversFile())));
 
-    
     Collection<Transmitter> transmitters = new LinkedList<Transmitter>();
     File transmittersFile = null;
     if (config.getTransmittersFile() != null
         && config.getTransmittersFile().trim().length() > 0) {
-      transmittersFile = new File(Main.buildPath(config.getTransmittersFile().trim()));
+      transmittersFile = new File(Main.buildPath(config.getTransmittersFile()
+          .trim()));
       if (transmittersFile.exists() && transmittersFile.canRead()) {
         BufferedReader txReader = new BufferedReader(new FileReader(
             transmittersFile));
@@ -205,17 +205,32 @@ public class Main {
 
       // Randomly generate transmitter locations
       if (generateTransmitters) {
-        transmitters = Main
-            .generateTransmitterLocations(Main.config.numTransmitters);
-        PrintWriter txWriter = new PrintWriter(new FileWriter(Main.buildPath(
-            Main.config.getTransmittersFile())));
+        if (Main.config.getTransmitterDistribution().startsWith("clustered")) {
+          
+          float probability = 0.5f;
+          float radius = 0.1f;
+          String[] parts = Main.config.getTransmitterDistribution().split("\\s");
+          if(parts.length > 1 && parts[1].length() > 0){
+            probability = Float.parseFloat(parts[1]);
+            if(parts.length > 2 && parts[2].length() > 0){
+              radius = Float.parseFloat(parts[2]);
+            }
+          }
+          transmitters = Main.generateClusteredTransmitterLocations(
+              Main.config.numTransmitters, probability, radius);
+        } else {
+          transmitters = Main
+              .generateUniformTransmitterLocations(Main.config.numTransmitters);
+        }
+        PrintWriter txWriter = new PrintWriter(new FileWriter(
+            Main.buildPath(Main.config.getTransmittersFile())));
         for (Transmitter txer : transmitters) {
           txWriter.printf("%.2f %.2f\n", txer.x, txer.y);
         }
         txWriter.flush();
         txWriter.close();
       } else {
-        Main.generateTransmitterLocations(Main.config.numTransmitters);
+        Main.generateUniformTransmitterLocations(Main.config.numTransmitters);
       }
 
       TaskConfig conf = new TaskConfig();
@@ -240,8 +255,8 @@ public class Main {
       if (Main.config.numTrials > 1) {
         prefix = Integer.valueOf(trialNumber).toString();
       }
-      PrintWriter rxWriter = new PrintWriter(new FileWriter(Main.buildPath(prefix
-          + Main.config.getReceiversFile())));
+      PrintWriter rxWriter = new PrintWriter(new FileWriter(
+          Main.buildPath(prefix + Main.config.getReceiversFile())));
       for (Receiver rxer : conf.receivers) {
         rxWriter.printf("%.2f %.2f %d\n", rxer.x, rxer.y,
             rxer.coveringDisks.size());
@@ -290,7 +305,7 @@ public class Main {
    *          the number of transmitters to generate.
    * @return an array of {@code Transmitter} objects randomly positioned.
    */
-  static Collection<Transmitter> generateTransmitterLocations(
+  static Collection<Transmitter> generateUniformTransmitterLocations(
       final int numTransmitters) {
 
     LinkedList<Transmitter> txers = new LinkedList<Transmitter>();
@@ -301,6 +316,82 @@ public class Main {
           + Main.rand.nextFloat() * Main.config.squareWidth;
       txer.y = (Main.config.universeHeight - Main.config.squareHeight) * .5f
           + Main.rand.nextFloat() * Main.config.squareHeight;
+      txers.add(txer);
+    }
+    return txers;
+  }
+
+  /**
+   * Randomly generate the locations of {@code numTransmitters} within the
+   * bounding square, clustered around other transmitters.  The two variables, {@code clusterProb}
+   * and {@code radiusPct} dictate the clustering frequency and density.
+   * 
+   * <p>The first parameter, {@code clusterProb}, determines the probability that a
+   * transmitter will be placed in a "clustered" location near another transmitter.  If this
+   * value were 0.2, then there is a 20% probability a transmitter is placed "near" another,
+   * and an 80% chance that it will be placed at a random location.</p>
+   * 
+   * <p>The second parameter, {@code radiusPct}, determines the maximum radius that
+   * the clustered transmitter will be placed with respect to another transmitter.  This
+   * range (radius) is expressed as a fraction of the average o the coordinate
+   * dimensions.</p>
+   * 
+   * @param numTransmitters
+   *          the number of transmitters to generate.
+   * @param clusterProb
+   *          the probability of placing a transmitter "near" to another rather
+   *          than randomly around the coordinate space.
+   *          @param radiusPct the percent of the average width/height to use when clustering transmitters.
+   *          
+   * @return an array of {@code Transmitter} objects randomly positioned.
+   */
+  static Collection<Transmitter> generateClusteredTransmitterLocations(
+      final int numTransmitters, final float clusterProb, final float radiusPct) {
+    float usedCluster = clusterProb;
+    if(usedCluster < 0){
+      usedCluster = 0f;
+    }else if(usedCluster > 1){
+      usedCluster = 1f;
+    }
+    float usedRadius = radiusPct;
+    if(usedRadius < 0){
+      usedRadius = .1f;
+    }else if(usedRadius > 1){
+      usedRadius = 1f;
+    }
+    
+    LinkedList<Transmitter> txers = new LinkedList<Transmitter>();
+    Transmitter txer = null;
+    float maxRadius = ((Main.config.squareWidth + Main.config.squareHeight) / 2) * usedRadius;
+    float xOffset = (Main.config.universeWidth - Main.config.squareWidth) * .5f;
+    float yOffset = (Main.config.universeHeight - Main.config.squareHeight) * .5f;
+    for (int i = 0; i < numTransmitters; ++i) {
+
+      txer = new Transmitter();
+      // Pick a uniformly random position
+      if (txers.isEmpty() || (rand.nextDouble() > usedCluster)) {
+        txer.x = xOffset + Main.rand.nextFloat() * Main.config.squareWidth;
+        txer.y = yOffset + Main.rand.nextFloat() * Main.config.squareHeight;
+      }
+      // Place it "near" another randomly-placed transmitter
+      else {
+        Transmitter randTx = txers.get(rand.nextInt(txers.size()));
+        float radius = rand.nextFloat() * maxRadius;
+        float theta = (float) (rand.nextFloat() * 2 * Math.PI);
+        txer.x = randTx.x + (float) (Math.cos(theta) * radius);
+        if(txer.x > Main.config.squareWidth + xOffset){
+          txer.x = Main.config.squareWidth;
+        }else if(txer.x < 0){
+          txer.x = 0;
+        }
+        txer.y = randTx.y + (float) (Math.sin(theta) * radius);
+        if(txer.y > Main.config.squareHeight + yOffset){
+          txer.y = Main.config.squareHeight;
+        }else if(txer.y < 0){
+          txer.y = 0;
+        }
+      }
+
       txers.add(txer);
     }
     return txers;
@@ -447,17 +538,21 @@ public class Main {
     final long duration = System.currentTimeMillis() - start;
     System.out.printf("Rendering took %,dms.\n", duration);
   }
-  
+
   /**
-   * Builds a pathname for the specified "path" relative path value.  Uses the {@link Config#getOutputBasePath()} value
+   * Builds a pathname for the specified "path" relative path value. Uses the
+   * {@link Config#getOutputBasePath()} value
    * to prefix the path.
-   * @param path the user-provided path.
-   * @return a combined path using both the configured base path and the provided path.
+   * 
+   * @param path
+   *          the user-provided path.
+   * @return a combined path using both the configured base path and the
+   *         provided path.
    */
-  public static String buildPath(final String path){
+  public static String buildPath(final String path) {
     final String prefix = config.getOutputBasePath().trim();
-    if(prefix.length() > 0){
-      return String.format("%s%s%s",prefix,File.separator,path);
+    if (prefix.length() > 0) {
+      return String.format("%s%s%s", prefix, File.separator, path);
     }
     return path;
   }
