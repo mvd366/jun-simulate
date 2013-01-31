@@ -65,7 +65,15 @@
 			 * "circled .5" - randomly distributed transmitters within an ellipse of
 				 some "width", defined from teh outside edge of the transmitter square. 
 			 * "sine 1" - randomly distributed transmitters along a "sine" wave within
-				 the coordinate space. -->
+				 the coordinate space. 
+			 * "dumbbell 1" - randomly distributed transmitters within a "dumbbell" shape
+				 separated by a "bar" of specified length (1 in this case). 
+			 * "plus .5" - randomly distributed transmitters along a plus sign (+) with
+				 some percentage width from the center. 
+			 * "2-holes .5" - randomly distributed receivers within the entire coordinate
+				 space, but excluding 2 circles of relative size. ".5" would mean that each circle
+				 is one-half of half the coordinate dimensions (quarter-width or quarter-height).
+	-->
   <transmitterDistribution>uniform</transmitterDistribution>
 </edu.rutgers.winlab.junsim.Config>
 

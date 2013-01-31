@@ -21,6 +21,7 @@ import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.File;
@@ -264,7 +265,46 @@ public class Main {
           transmitters = Main.generateSineTransmitterLocations(
               Main.config.numTransmitters, radius);
         }
+        // "Dumbbell" distribution
+        else if (Main.config.getTransmitterDistribution().startsWith("dumbbell")) {
+          float width = Math.min(Main.config.squareWidth,
+              Main.config.squareHeight) * .2f;
 
+          String[] parts = Main.config.getTransmitterDistribution()
+              .split("\\s");
+          if (parts.length > 1 && parts[1].length() > 0) {
+            width = Float.parseFloat(parts[1]);
+
+          }
+          transmitters = Main.generateDumbbellTransmitterLocations(
+              Main.config.numTransmitters, width);
+        }
+        // "Plus" (+) distribution
+        else if (Main.config.getTransmitterDistribution().startsWith("plus")) {
+          float width = .2f;
+
+          String[] parts = Main.config.getTransmitterDistribution()
+              .split("\\s");
+          if (parts.length > 1 && parts[1].length() > 0) {
+            width = Float.parseFloat(parts[1]);
+
+          }
+          transmitters = Main.generatePlusTransmitterLocations(
+              Main.config.numTransmitters, width);
+        }
+        // Random with "holes" distribution
+        else if (Main.config.getTransmitterDistribution().startsWith("2-holes")) {
+          float width = .2f;
+
+          String[] parts = Main.config.getTransmitterDistribution()
+              .split("\\s");
+          if (parts.length > 1 && parts[1].length() > 0) {
+            width = Float.parseFloat(parts[1]);
+
+          }
+          transmitters = Main.generate2HolesTransmitterLocations(
+              Main.config.numTransmitters, width);
+        }
         // Basic uniform random distribution
         else {
           transmitters = Main
@@ -583,10 +623,11 @@ public class Main {
     float xOffset = (Main.config.universeWidth - Main.config.squareWidth) * .5f;
     float yOffset = (Main.config.universeHeight - Main.config.squareHeight) * .5f;
     float wiggle = usedRadius * 0.1f;
+    float xCenter = xOffset + Main.config.squareWidth/2;
 
-    float[] xCenter = { xOffset + Main.config.squareWidth / 4,
-        xOffset + 3 * Main.config.squareWidth / 4 };
-    float[] yCenter = { yOffset + Main.config.squareHeight / 2,
+    float[] xCenters = { xCenter - usedRadius,
+        xCenter + usedRadius };
+    float[] yCenters = { yOffset + Main.config.squareHeight / 2,
         yOffset + Main.config.squareWidth / 2 };
 
     for (int i = 0; i < numTransmitters; ++i) {
@@ -596,16 +637,16 @@ public class Main {
       // "Right" side
       if (rand.nextBoolean()) {
         float theta = rand.nextFloat() * (float) Math.PI;
-        float x = xCenter[1] + (float) Math.cos(theta) * usedRadius;
-        float y = yCenter[1] + (float) Math.sin(theta) * usedRadius;
+        float x = xCenters[1] + (float) Math.cos(theta) * usedRadius;
+        float y = yCenters[1] + (float) Math.sin(theta) * usedRadius;
         txer.x = x - wiggle / 2 + rand.nextFloat() * wiggle;
         txer.y = y - wiggle / 2 + rand.nextFloat() * wiggle;
       }
       // "Right" side
       else {
         float theta = -rand.nextFloat() * (float) Math.PI;
-        float x = xCenter[0] + (float) Math.cos(theta) * usedRadius;
-        float y = yCenter[0] + (float) Math.sin(theta) * usedRadius;
+        float x = xCenters[0] + (float) Math.cos(theta) * usedRadius;
+        float y = yCenters[0] + (float) Math.sin(theta) * usedRadius;
         txer.x = x - wiggle / 2 + rand.nextFloat() * wiggle;
         txer.y = y - wiggle / 2 + rand.nextFloat() * wiggle;
       }
@@ -622,6 +663,185 @@ public class Main {
         txer.y = yOffset;
       }
 
+      txers.add(txer);
+    }
+    return txers;
+  }
+  
+  /**
+   * Randomly generate the locations of {@code numTransmitters} within
+   * a "dumbbell" shape.
+   * 
+   * @param numTransmitters
+   *          the number of transmitters to generate.
+   * @param width
+   *          the width of the dumbbell's "bar" as a ratio of the width of the coordinate space
+   * @return an array of {@code Transmitter} objects randomly positioned.
+   */
+  static Collection<Transmitter> generateDumbbellTransmitterLocations(
+      final int numTransmitters, final float width) {
+    LinkedList<Transmitter> txers = new LinkedList<Transmitter>();
+    Transmitter txer = null;
+
+    float xOffset = (Main.config.universeWidth - Main.config.squareWidth) * .5f;
+    float yOffset = (Main.config.universeHeight - Main.config.squareHeight) * .5f;
+    
+    float usedWidth = width;
+    if(usedWidth < 0){
+      usedWidth = 0.1f;
+    }else if(usedWidth > Main.config.squareWidth){
+      usedWidth = Main.config.squareWidth*.99f;
+    }
+    
+    // The entire structure is expected to be two squares connected by a "bar" of some
+    // width.
+    
+    float bellWidth = (Main.config.squareWidth - usedWidth)/2;
+    float verticalMargin = (Main.config.squareHeight - bellWidth)/2;
+    
+    float yCenter = yOffset + Main.config.squareHeight/2;
+    float barHeight = bellWidth / 4;
+    
+    // Generate 3 rectangles.  The first two are the "weights", the third is the "bar".
+    
+    Rectangle2D.Float[] areas = {new Rectangle2D.Float(xOffset, yOffset + verticalMargin, bellWidth, bellWidth),
+        new Rectangle2D.Float(xOffset+usedWidth+bellWidth,yOffset + verticalMargin, bellWidth, bellWidth),
+        new Rectangle2D.Float(xOffset+bellWidth,yCenter-barHeight/2,usedWidth,barHeight)};
+    
+  
+    // 40% probability in each bell, 20% prob in bar
+    float[] areaProbs = {0.4f, 0.8f};
+    
+    for (int i = 0; i < numTransmitters; ++i) {
+
+      txer = new Transmitter();
+      float randVal = rand.nextFloat();
+      // In the bar
+      if(randVal > areaProbs[1]){
+        txer.x = xOffset + bellWidth + rand.nextFloat()*usedWidth;
+        txer.y = yCenter - barHeight/2 + rand.nextFloat()*barHeight;
+      }
+      // In the "left" bell
+      else if(randVal > areaProbs[0]){
+        txer.x = xOffset + rand.nextFloat()*bellWidth;
+        txer.y = yOffset + verticalMargin + rand.nextFloat()*bellWidth;
+      }
+      // In the "right" bell
+      else{
+        txer.x = xOffset + bellWidth + usedWidth + rand.nextFloat()*bellWidth;
+        txer.y = yOffset + verticalMargin + rand.nextFloat()*bellWidth;
+      }
+      txers.add(txer);
+    }
+    return txers;
+  }
+  
+  /**
+   * Randomly generate the locations of {@code numTransmitters} within
+   * a "plus" shape.
+   * 
+   * @param numTransmitters
+   *          the number of transmitters to generate.
+   * @param widthPct
+   *          how far away from the "+" center to place the devices.
+   * @return an array of {@code Transmitter} objects randomly positioned.
+   */
+  static Collection<Transmitter> generatePlusTransmitterLocations(
+      final int numTransmitters, final float widthPct) {
+    LinkedList<Transmitter> txers = new LinkedList<Transmitter>();
+    Transmitter txer = null;
+
+    float xOffset = (Main.config.universeWidth - Main.config.squareWidth) * .5f;
+    float yOffset = (Main.config.universeHeight - Main.config.squareHeight) * .5f;
+    float xCenter = Main.config.squareWidth / 2 + xOffset;
+    float yCenter = Main.config.squareHeight / 2 + yOffset;
+    
+    float usedWidth = widthPct;
+    if(usedWidth < 0){
+      usedWidth = 0.1f;
+    }else if(usedWidth > Main.config.squareWidth){
+      usedWidth = 1f;
+    }
+    
+    float maxWidth = usedWidth * Math.min(Main.config.squareWidth, Main.config.squareHeight);
+    
+    float totalLength = Main.config.squareWidth + Main.config.squareHeight;
+    float horizontalLength = Main.config.squareWidth;
+   
+    for (int i = 0; i < numTransmitters; ++i) {
+
+      txer = new Transmitter();
+      
+      float l = rand.nextFloat()*totalLength;
+      float w = rand.nextFloat()*maxWidth - maxWidth;
+      
+      // Place it on the "vertical" bar
+      if(l > horizontalLength){
+        l -= horizontalLength;
+        txer.y = yOffset + l;
+        txer.x = xCenter + w;
+      }
+      // Place it on the "horizontal" bar
+      else {
+        txer.x = xOffset + l;
+        txer.y = yCenter + w;
+      }
+      
+      txers.add(txer);
+    }
+    return txers;
+  }
+  
+  /**
+   * Randomly generate the locations of {@code numTransmitters} excluding
+   * two "holes" of configurable size.
+   * 
+   * @param numTransmitters
+   *          the number of transmitters to generate.
+   * @param radiusPct
+   *          radius of each circle, as a percent of one-half of the minimally-sized
+   *          dimension.
+   * @return an array of {@code Transmitter} objects randomly positioned.
+   */
+    static Collection<Transmitter> generate2HolesTransmitterLocations(
+      final int numTransmitters, final float radiusPct) {
+    LinkedList<Transmitter> txers = new LinkedList<Transmitter>();
+    Transmitter txer = null;
+
+    float xOffset = (Main.config.universeWidth - Main.config.squareWidth) * .5f;
+    float yOffset = (Main.config.universeHeight - Main.config.squareHeight) * .5f;
+    
+    float usedPct = radiusPct;
+    if(usedPct <= 0){
+      usedPct = 0.01f;
+    }else if (usedPct > 1){
+      usedPct = 1f;
+    }
+    
+    float usedRadius = usedPct * Math.min(Main.config.squareWidth, Main.config.squareHeight)/4;
+    
+    float[] xCenters = {xOffset + Main.config.squareWidth / 4, xOffset + 3* Main.config.squareWidth/4};
+    float yCenter = yOffset + Main.config.squareHeight/2;
+    
+    Ellipse2D.Float[] circles = {new Ellipse2D.Float(xCenters[0] - usedRadius, yCenter - usedRadius,
+        usedRadius*2, usedRadius*2), new Ellipse2D.Float(xCenters[1] - usedRadius, yCenter - usedRadius,
+            usedRadius*2, usedRadius*2)};
+    
+    
+  txer:  for (int i = 0; i < numTransmitters; ++i) {
+
+      txer = new Transmitter();
+      txer.x = xOffset + rand.nextFloat()*Main.config.squareWidth;
+      txer.y = yOffset + rand.nextFloat()*Main.config.squareHeight;
+      
+      // Skip points that lie within the circles
+      for(Ellipse2D.Float circ : circles){
+        if(circ.contains(txer)){
+          --i;
+          continue txer;
+        }
+      }
+      
       txers.add(txer);
     }
     return txers;
