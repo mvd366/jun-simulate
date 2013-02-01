@@ -627,8 +627,7 @@ public class Main {
 
     float[] xCenters = { xCenter - usedRadius,
         xCenter + usedRadius };
-    float[] yCenters = { yOffset + Main.config.squareHeight / 2,
-        yOffset + Main.config.squareWidth / 2 };
+    float yCenter = yOffset + Main.config.squareHeight / 2;
 
     for (int i = 0; i < numTransmitters; ++i) {
 
@@ -638,27 +637,27 @@ public class Main {
       if (rand.nextBoolean()) {
         float theta = rand.nextFloat() * (float) Math.PI;
         float x = xCenters[1] + (float) Math.cos(theta) * usedRadius;
-        float y = yCenters[1] + (float) Math.sin(theta) * usedRadius;
-        txer.x = x - wiggle / 2 + rand.nextFloat() * wiggle;
-        txer.y = y - wiggle / 2 + rand.nextFloat() * wiggle;
+        float y = yCenter + (float) Math.sin(theta) * usedRadius;
+        txer.x = x - (wiggle / 2) + (rand.nextFloat() * wiggle);
+        txer.y = y - (wiggle / 2) + (rand.nextFloat() * wiggle);
       }
-      // "Right" side
+      // "Left" side
       else {
         float theta = -rand.nextFloat() * (float) Math.PI;
         float x = xCenters[0] + (float) Math.cos(theta) * usedRadius;
-        float y = yCenters[0] + (float) Math.sin(theta) * usedRadius;
-        txer.x = x - wiggle / 2 + rand.nextFloat() * wiggle;
-        txer.y = y - wiggle / 2 + rand.nextFloat() * wiggle;
+        float y = yCenter + (float) Math.sin(theta) * usedRadius;
+        txer.x = x - (wiggle / 2) + (rand.nextFloat() * wiggle);
+        txer.y = y - (wiggle / 2) + (rand.nextFloat() * wiggle);
       }
       
       if (txer.x > Main.config.squareWidth + xOffset) {
-        txer.x = Main.config.squareWidth;
+        txer.x = xOffset + Main.config.squareWidth;
       } else if (txer.x < xOffset) {
         txer.x = xOffset;
       }
       
       if (txer.y > Main.config.squareHeight + yOffset) {
-        txer.y = Main.config.squareHeight;
+        txer.y = yOffset + Main.config.squareHeight;
       } else if (txer.y < yOffset) {
         txer.y = yOffset;
       }
@@ -773,7 +772,8 @@ public class Main {
       txer = new Transmitter();
       
       float l = rand.nextFloat()*totalLength;
-      float w = rand.nextFloat()*maxWidth - maxWidth;
+      // Actually the offset
+      float w = rand.nextFloat()*maxWidth - maxWidth/2;
       
       // Place it on the "vertical" bar
       if(l > horizontalLength){
