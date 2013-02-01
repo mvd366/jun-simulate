@@ -92,7 +92,7 @@ public class Config {
   /**
    * The location of the rendering configuration file.
    */
-  String renderConfig = "src/main/resources/render.xml";
+  String renderConfig = "src/main/resources/graphics.xml";
 
   /**
    * Type of experiment to run.
