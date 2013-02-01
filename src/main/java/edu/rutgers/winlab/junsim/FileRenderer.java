@@ -72,6 +72,10 @@ public class FileRenderer {
   public static Color getReceiverColor() {
     return colorSet.getReceiverColor();
   }
+  
+  public static Color getBackgroundColor() {
+    return colorSet.getBackgroundColor();
+  }
 
   private float pointRadius = 1f;
 

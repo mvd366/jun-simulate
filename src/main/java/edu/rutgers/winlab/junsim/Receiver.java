@@ -23,14 +23,17 @@ import java.awt.Color;
 import java.awt.Composite;
 import java.awt.FontMetrics;
 import java.awt.Graphics2D;
+import java.awt.Paint;
 import java.awt.Polygon;
 import java.awt.Stroke;
+import java.awt.TexturePaint;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.GeneralPath;
 import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
+import java.awt.image.BufferedImage;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -52,6 +55,22 @@ public class Receiver extends Point2D.Float implements Drawable {
    * The set of covering disks that overlap this receiver's position.
    */
   Collection<CaptureDisk> coveringDisks = new LinkedList<CaptureDisk>();
+  
+  static final BufferedImage hatchImage = new BufferedImage(5, 5, BufferedImage.TYPE_INT_ARGB);
+  static final Rectangle2D hatchAnchor = new Rectangle2D.Double(0, 0, 5, 5);
+  static TexturePaint hatchPaint = new TexturePaint(hatchImage, hatchAnchor);
+  
+  static {
+    Graphics2D g2 = hatchImage.createGraphics();
+    g2.setColor(FileRenderer.getReceiverColor());
+    g2.fillRect(0, 0, 5, 5);
+    g2.setColor(FileRenderer.getStrokeColor());
+//    g2.setStroke(new BasicStroke(2));
+    g2.drawLine(0, 0, 5, 5); // \
+    g2.drawLine(0, 5, 5, 0); // /
+    g2.dispose();
+  }
+  
 
   @Override
   public void draw(Graphics2D g, float scaleX, float scaleY) {
@@ -90,33 +109,54 @@ public class Receiver extends Point2D.Float implements Drawable {
     g.setStroke(origStroke);
 
     if (Main.gfxConfig.isDrawReceivers()) {
-      float size = FileRenderer.getRadiusForPercent(1f)*1.2f;
+      
+      // Draw a partly-translucent triangle to make the receiver
+      // more easily visible
+      float size = FileRenderer.getRadiusForPercent(1f)*1.5f;
       GeneralPath triangle = new GeneralPath(GeneralPath.WIND_EVEN_ODD, 3);
       triangle.moveTo(-size, size);
       triangle.lineTo(size, size);
       triangle.lineTo(0, -size);
       triangle.closePath();
-      g.setColor(FileRenderer.getReceiverColor());
       
-
+      g.translate((int) (this.getX() * scaleX), (int) (this.getY() * scaleY)-1);
       
-      
-
-      g.translate((int) (this.getX() * scaleX), (int) (this.getY() * scaleY));
+      Composite origComposite = g.getComposite();
+      g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.5f));
+      g.setColor(FileRenderer.getBackgroundColor());
       g.fill(triangle);
+      g.setComposite(origComposite);
+      
+      g.translate(0,1);
+      
+      // Now draw the receiver triangle
+      size = FileRenderer.getRadiusForPercent(1f)*1.2f;
+      triangle = new GeneralPath(GeneralPath.WIND_EVEN_ODD, 3);
+      triangle.moveTo(-size, size);
+      triangle.lineTo(size, size);
+      triangle.lineTo(0, -size);
+      triangle.closePath();
+      g.setColor(FileRenderer.getReceiverColor());
+//      g.setPaint(new TexturePaint(hatchImage, hatchAnchor));
+      
+      Paint origPaint = g.getPaint();
+
+      
+      g.fill(triangle);
+      g.setPaint(origPaint);
       g.setColor(origColor);
       g.draw(triangle);
-
+      
       FontMetrics metrics = g.getFontMetrics();
       final String drawnString = "R" + this.coveringDisks.size() + "/"
           + coverageCount;
       Rectangle2D.Float box = (Rectangle2D.Float) metrics.getStringBounds(
           drawnString, null);
       g.setColor(FileRenderer.colorSet.getBackgroundColor());
-      Composite origComposite = g.getComposite();
+      origComposite = g.getComposite();
       g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.5f));
       g.translate((int) size, (int) -size);
-      g.fill(box);
+//      g.fill(box);
       g.setColor(origColor);
       g.setComposite(origComposite);
 //      g.drawString(drawnString, 0, 0);

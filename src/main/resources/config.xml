@@ -60,12 +60,12 @@
 			   clustered, and clustering is within 20% (0.2) units of the average
 				 dimensions of the simulation (height+widht)/2 from some other 
 				 transmitter. 
-			 * "rectangled .5" - randomly distributed transmitters within a rectangle of
+			 * "rectangled 1" - randomly distributed transmitters within a rectangle of
 			   some "width", defined from the outside edge of the transmitter square. 
-			 * "circled .5" - randomly distributed transmitters within an ellipse of
-				 some "width", defined from teh outside edge of the transmitter square. 
+			 * "circled 1" - randomly distributed transmitters within an ellipse of
+				 some "width", defined from the outside edge of the transmitter square. 
 			 * "sine 1" - randomly distributed transmitters along a "sine" wave within
-				 the coordinate space. 
+				 the coordinate space.  The numeric value is the radius of the sine curve.
 			 * "dumbbell 1" - randomly distributed transmitters within a "dumbbell" shape
 				 separated by a "bar" of specified length (1 in this case). 
 			 * "plus .5" - randomly distributed transmitters along a plus sign (+) with

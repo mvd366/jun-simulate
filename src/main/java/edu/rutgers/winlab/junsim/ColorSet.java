@@ -44,7 +44,7 @@ public class ColorSet {
   
   private static final Color RECEIVER_COLOR = Color.BLUE;
   
-  private static final Color RECEIVER_GRAY = Color.getHSBColor(0, 0, 0.5f);
+  private static final Color RECEIVER_GRAY = Color.getHSBColor(0, 0, 0.8f);
 
   private transient boolean grayscale = false;
 
