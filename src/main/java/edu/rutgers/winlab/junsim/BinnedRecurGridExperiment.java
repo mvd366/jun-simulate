@@ -200,8 +200,6 @@ public class BinnedRecurGridExperiment implements Experiment {
   public Boolean perform() {
     // final ExperimentRender display = new AnimatedRenderer(Main.gfxConfig);
 
-    
-
     final Collection<CaptureDisk> disks = new HashSet<CaptureDisk>();
     // Compute all possible capture disks
     for (final Transmitter t1 : this.config.transmitters) {
@@ -212,7 +210,7 @@ public class BinnedRecurGridExperiment implements Experiment {
         }
       }
     }
-    
+
     if (Main.gfxConfig.generateImages) {
       this.render.setTransmitters(this.config.transmitters);
       this.render.setCaptureDisks(disks);
@@ -233,18 +231,12 @@ public class BinnedRecurGridExperiment implements Experiment {
     float random = Main.config.isRandomized() ? ((Main.config.universeWidth + Main.config.universeHeight) / 2) * 0.01f
         : 0f;
 
-    Collection<Point2D> startingPoints = BinnedRecurGridExperiment
-        .generateSolutionPoints(minX, maxX, minY, maxY, random,
-            this.config.transmitters);
-    log.info(String.format("[%d] Generated %,d solution points.\n",
-        this.config.trialNumber, startingPoints.size()));
-
     final int totalCaptureDisks = disks.size();
     // final int startingSolutionPoints = startingPoints.size();
     int m = 0;
 
     // Keep going while there are either solution points or capture disks
-//    final Collection<Receiver> receivers = new LinkedList<Receiver>();
+    // final Collection<Receiver> receivers = new LinkedList<Receiver>();
     // Keep track of which collisions are captured so that packet loss
     // probabilities can be quickly calculated
     final ConcurrentHashMap<Transmitter, HashSet<Transmitter>> capturedCollisions = new ConcurrentHashMap<Transmitter, HashSet<Transmitter>>();
@@ -254,9 +246,109 @@ public class BinnedRecurGridExperiment implements Experiment {
     }
 
     this.binner = new Binner(this.numBins, 1, disks.size() / 3);
-    this.binner.set(startingPoints, 1);
 
     int highestBindex = 0;
+    // Evaluate any receiver positions we've been given
+    for (Receiver rxer : this.config.receivers) {
+
+      if (m >= this.config.numReceivers) {
+        break;
+      }
+
+      int previousMaxScore = 0;
+
+      log.info("[" + this.config.trialNumber
+          + "] Evaluating existing receiver position " + (m + 1) + ".");
+      // ////////////////////////////////////////////////////////////////////
+
+      SolutionCheckTask task = new SolutionCheckTask();
+      task.solutionPoints = new LinkedList<Point2D>();
+      task.solutionPoints.add(rxer);
+      task.disks = disks;
+      task.binner = this.binner;
+      task.desiredBin = highestBindex;
+
+      try {
+        final Future<Receiver> future = this.workers.submit(task);
+
+        try {
+          final Receiver r = future.get();
+          if(r != null) {
+            highestBindex = this.binner.getBindex(r.coveringDisks.size());
+            rxer.coveringDisks = r.coveringDisks;
+          }
+
+        } catch (final ExecutionException e) {
+          // TODO Auto-generated catch block
+          e.printStackTrace();
+        }
+
+      } catch (final InterruptedException e) {
+        e.printStackTrace();
+      }
+
+      log.info("Receiver score: {}", rxer.coveringDisks.size());
+
+      // Add captures to each transmitter's capture set for collision
+      // calculations
+      for (final CaptureDisk disk : rxer.coveringDisks) {
+        capturedCollisions.get(disk.t1).add(disk.t2);
+        disk.t1.addCoveredDisk(disk);
+      }
+      disks.removeAll(rxer.coveringDisks);
+
+      // Calculate collision rates for each transmitter
+      // Store the min, max, and mean
+      float mean_contention = 0.0f;
+      float min_contention = this.config.numTransmitters;
+      float max_contention = 0.0f;
+      for (final Transmitter txer : this.config.transmitters) {
+        // Calculate the number of transmitters in contention
+        // Subtract 1 because this transmitter can never be in contention with
+        // itself
+        final int num_in_contention = this.config.numTransmitters - 1
+            - capturedCollisions.get(txer).size();
+        min_contention = Math.min(num_in_contention, min_contention);
+        max_contention = Math.max(num_in_contention, max_contention);
+        mean_contention += (float) num_in_contention
+            / this.config.numTransmitters;
+      }
+      this.stats[m].addContention(mean_contention);
+      this.stats[m].addMinContention(min_contention);
+      this.stats[m].addMaxContention(max_contention);
+
+      final float capturedDisks = totalCaptureDisks - disks.size();
+      final float captureRatio = (capturedDisks / totalCaptureDisks);
+      // Debugging stuff
+      if (Main.gfxConfig.generateImages) {
+        this.render.setTransmitters(this.config.transmitters);
+        this.render.setRankedSolutionPoints(this.binner.getBins(),
+            this.binner.getBinMins());
+
+        // display.setSolutionPoints(this.binner.getMaxBin());
+        this.render.setCaptureDisks(disks);
+        this.render.setReceiverPoints(this.config.receivers);
+
+        final String saveName = String.format(this.saveDirectory
+            + File.separator + "1%03d", (m + 1));
+        Main.saveImage(this.render, saveName);
+        this.render.clear();
+
+      }
+
+      this.stats[m].addCoverage(captureRatio);
+      ++m;
+    }
+
+    // Finding new positions
+    Collection<Point2D> startingPoints = BinnedRecurGridExperiment
+        .generateSolutionPoints(minX, maxX, minY, maxY, random,
+            this.config.transmitters);
+    log.info(String.format("[%d] Generated %,d solution points.\n",
+        this.config.trialNumber, startingPoints.size()));
+
+    this.binner.set(startingPoints, 1);
+
     receiverLoop: while (m < this.config.numReceivers && !disks.isEmpty()) {
 
       log.info("[" + this.config.trialNumber
@@ -271,25 +363,23 @@ public class BinnedRecurGridExperiment implements Experiment {
         if (maxReceiver != null) {
           previousMaxScore = maxReceiver.coveringDisks.size();
         }
-        log.info("Using bin {}",this.binner.getMaxBindex());
+        log.info("Using bin {}", this.binner.getMaxBindex());
         Set<Point2D> possiblePoints = this.binner.getMaxBin();
         if (possiblePoints == null) {
           log.info("No more points available in the bins.");
           break;
         }
         Set<Point2D> thePoints = new HashSet<Point2D>();
-        for(Iterator<Point2D> iter = possiblePoints.iterator(); iter.hasNext();){
+        for (Iterator<Point2D> iter = possiblePoints.iterator(); iter.hasNext();) {
           Point2D pnt = iter.next();
           iter.remove();
           if (alreadyChecked.contains(pnt)) {
             maxChecked.add(pnt);
-          }else{
+          } else {
             thePoints.add(pnt);
           }
-          
-        }
 
-       
+        }
 
         final int numTasks = Main.config.numThreads;
         final int numPoints = thePoints.size();
@@ -365,11 +455,11 @@ public class BinnedRecurGridExperiment implements Experiment {
             numComparisons, duration));
 
         if (maxReceiver == null) {
-          
+
           if (highestBindex == 0) {
             break receiverLoop;
           }
-          
+
           highestBindex = this.binner.getMaxBindex();
           alreadyChecked.clear();
           maxChecked.clear();
@@ -377,7 +467,6 @@ public class BinnedRecurGridExperiment implements Experiment {
         }
 
         alreadyChecked.remove(maxReceiver);
-        
 
         log.info("Max receiver score: {}", maxReceiver.coveringDisks.size());
 
@@ -409,10 +498,11 @@ public class BinnedRecurGridExperiment implements Experiment {
       } while (previousMaxScore == 0
           || maxReceiver.coveringDisks.size() != previousMaxScore);
 
-      log.info(String.format("Adding %,d max points, instead of %,d total.", maxChecked.size(),alreadyChecked.size()));
-      
-      this.binner.putAll(maxChecked,maxReceiver.coveringDisks.size());
-      
+      log.info(String.format("Adding %,d max points, instead of %,d total.",
+          maxChecked.size(), alreadyChecked.size()));
+
+      this.binner.putAll(maxChecked, maxReceiver.coveringDisks.size());
+
       minX = 0;
       maxX = Main.config.universeWidth;
       minY = 0;
@@ -517,13 +607,13 @@ public class BinnedRecurGridExperiment implements Experiment {
         final float x = xIndex
             + (float) (Main.rand.nextBoolean() ? (Main.rand.nextDouble() * random)
                 : (-Main.rand.nextDouble() * random));
-        if(x < 0 || x > Main.config.universeWidth){
+        if (x < 0 || x > Main.config.universeWidth) {
           continue;
         }
         final float y = yIndex
             + (float) (Main.rand.nextBoolean() ? (Main.rand.nextDouble() * random)
                 : (-Main.rand.nextDouble() * random));
-        if(y < 0 || y > Main.config.universeHeight){
+        if (y < 0 || y > Main.config.universeHeight) {
           continue;
         }
         Point2D.Float pnt = new Point2D.Float(x, y);

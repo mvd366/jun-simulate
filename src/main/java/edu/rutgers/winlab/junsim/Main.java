@@ -160,8 +160,36 @@ public class Main {
     // Output file (CSV) for stats
     PrintWriter fileWriter = new PrintWriter(new FileWriter(outputFile));
 
-    PrintWriter receiverWriter = new PrintWriter(new FileWriter(
-        Main.buildPath(config.getReceiversFile())));
+//    PrintWriter receiverWriter = new PrintWriter(new FileWriter(
+//        Main.buildPath(config.getReceiversFile())));
+    
+    Collection<Receiver> receivers = new LinkedList<Receiver>();
+    File receiversFile = null;
+    if (config.getReceiversFile() != null
+        && config.getReceiversFile().trim().length() > 0) {
+      receiversFile = new File(Main.buildPath(config.getReceiversFile()
+          .trim()));
+      if (receiversFile.exists() && receiversFile.canRead()) {
+        BufferedReader rxReader = new BufferedReader(new FileReader(
+            receiversFile));
+        String line = null;
+        while (receivers.size() < config.getNumReceivers() && (line = rxReader.readLine()) != null) {
+          String[] components = line.split("\\s+");
+          if (components.length < 2) {
+            log.info("Skipping line \"{}\".", line);
+            continue;
+          }
+          float xPos = Float.parseFloat(components[0]);
+          float yPos = Float.parseFloat(components[1]);
+          final Receiver rxer = new Receiver();
+          rxer.x = xPos;
+          rxer.y = yPos;
+          receivers.add(rxer);
+        }
+      }
+
+    }
+    
 
     Collection<Transmitter> transmitters = new LinkedList<Transmitter>();
     File transmittersFile = null;
@@ -326,7 +354,7 @@ public class Main {
       conf.numTransmitters = transmitters.size();
       conf.transmitters = transmitters;
       conf.numReceivers = Main.config.numReceivers;
-      conf.receivers = new LinkedList<Receiver>();
+      conf.receivers = receivers;
 
       Experiment task;
       if ("binned".equalsIgnoreCase(config.experimentType)) {
