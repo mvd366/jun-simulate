@@ -266,7 +266,7 @@ public class BinnedRecurGridExperiment implements Experiment {
       task.solutionPoints.add(rxer);
       task.disks = disks;
       task.binner = this.binner;
-      task.desiredBin = highestBindex;
+      task.desiredBin = 0;
 
       try {
         final Future<Receiver> future = this.workers.submit(task);
