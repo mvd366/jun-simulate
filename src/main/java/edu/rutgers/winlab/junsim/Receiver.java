@@ -56,6 +56,8 @@ public class Receiver extends Point2D.Float implements Drawable {
    */
   Collection<CaptureDisk> coveringDisks = new LinkedList<CaptureDisk>();
   
+  public float score = 0;
+  
   static final BufferedImage hatchImage = new BufferedImage(5, 5, BufferedImage.TYPE_INT_ARGB);
   static final Rectangle2D hatchAnchor = new Rectangle2D.Double(0, 0, 5, 5);
   static TexturePaint hatchPaint = new TexturePaint(hatchImage, hatchAnchor);

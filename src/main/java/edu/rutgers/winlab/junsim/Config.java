@@ -96,7 +96,7 @@ public class Config {
 
   /**
    * Type of experiment to run.
-   * "basic", "binned", "grid", or "recursive"
+   * "basic", "binned", "grid", "recursive", "fair"
    */
   String experimentType = "basic";
   

@@ -40,7 +40,9 @@ public class Transmitter extends Point2D.Float implements Drawable {
 
   private final Collection<CaptureDisk> coveredDisks = new HashSet<CaptureDisk>();
 
- 
+  public int getContention(){
+    return this.disks.size() - this.coveredDisks.size();
+  }
 
   @Override
   public void draw(Graphics2D g, float scaleX, float scaleY) {

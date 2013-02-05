@@ -38,8 +38,11 @@
        * "grid" - produces a grid of points to test rather than looking
                   at circle intersections. 
        * "recursive" - produces a grid of points, but uses recursion to
-                       try to find a "good" maximum.  -->
-  <experimentType>binned</experimentType>
+                       try to find a "good" maximum. 
+       * "fair" - uses an adaptive grid, but tries to find the "fairest" placement
+                  to maximize the number of transmitters with improved contention.
+  -->
+  <experimentType>recursive</experimentType>
   <!-- Number of points per "square unit" (grid) or for the entire "universe"
        (recursive).  -->
   <gridDensity>25</gridDensity>
