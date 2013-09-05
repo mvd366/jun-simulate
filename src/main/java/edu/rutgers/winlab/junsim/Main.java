@@ -361,10 +361,12 @@ public class Main {
       } else if ("recursive".equalsIgnoreCase(config.experimentType)) {
         task = new BinnedRecurGridExperiment(conf, stats, workers);
       } else if ("fair".equalsIgnoreCase(config.experimentType)){
-         task = new AdaptiveFairExperiment(conf, stats, workers);
+        task = new AdaptiveFairExperiment(conf, stats, workers);
+      } else if ("density".equalsIgnoreCase(config.experimentType)) {
+        task = new DensityExperiment(conf, stats, workers);
       }else {
         task = new BasicExperiment(conf, stats, workers);
-      }
+      } 
       task.perform();
       String prefix = "";
       if (Main.config.numTrials > 1) {
