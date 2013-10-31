@@ -1,9 +1,15 @@
 # Java stuff
 *.class
 *.jar
+*.log
+*.ssv
+*.csv
 target
 
 # Eclipse stuff
 *.project
 *.classpath
 *.settings
+
+# IntelliJ stuff
+*.idea
