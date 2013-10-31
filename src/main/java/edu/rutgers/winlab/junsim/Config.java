@@ -132,6 +132,11 @@ public class Config {
    */
   boolean randomized=false;
 
+   /**
+    * The number of rows/columns to split the area in to for density analysis
+    */
+   int densityRoot = 3;
+
   public int getNumTransmitters() {
     return numTransmitters;
   }

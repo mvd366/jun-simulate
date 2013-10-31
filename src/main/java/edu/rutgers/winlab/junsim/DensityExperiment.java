@@ -395,6 +395,23 @@ public class DensityExperiment implements Experiment {
 
   private static Collection<Point2D> generateSolutionPoints(
       final Collection<CaptureDisk> disks, final Collection<Transmitter> transmitters) {
+
+      final Collection<Point2D> solutionPoints = new HashSet<Point2D>();
+      float maxHeight = Main.config.universeHeight;
+      float maxWidth = Main.config.universeWidth;
+      float cellHeight = maxHeight / Main.config.densityRoot;
+      float cellWidth = maxWidth / Main.config.densityRoot;
+
+      for (int x = 0; x < Main.config.densityRoot; x++) {
+        for (int y = 0; y < Main.config.densityRoot; y++) {
+            double cellX = (x * cellWidth) + (0.5 * cellWidth);
+            double cellY = (y * cellHeight) + (0.5 * cellHeight);
+            final Point2D.Float centerOfCell = new Point2D.Float((float) cellX, (float) cellY);
+            solutionPoints.add(centerOfCell);
+        }
+      }
+
+        /*
     // Add center points of all capture disks as solutions
     final Collection<Point2D> solutionPoints = new HashSet<Point2D>();
     for (final CaptureDisk disk : disks) {
@@ -424,6 +441,8 @@ public class DensityExperiment implements Experiment {
         }
       }
     }
+      */
+
 
     return solutionPoints;
   }

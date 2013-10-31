@@ -78,5 +78,7 @@
 				 is one-half of half the coordinate dimensions (quarter-width or quarter-height).
 	-->
   <transmitterDistribution>uniform</transmitterDistribution>
+  <!-- The number of rows/columns to split the area in to for density analysis -->
+  <densityRoot>5</densityRoot>
 </edu.rutgers.winlab.junsim.Config>
 
