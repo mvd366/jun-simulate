@@ -1,6 +1,6 @@
 <edu.rutgers.winlab.junsim.RenderConfig>
   <!-- Flag to render images or not. -->
-  <generateImages>true</generateImages>
+  <generateImages>false</generateImages>
   <!-- Width of rendered images, in pixels. -->
   <renderWidth>800</renderWidth>
   <!-- Height of rendered images, in pixels. -->

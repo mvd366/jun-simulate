@@ -2,7 +2,7 @@
   <!-- Relative distance between two transmitters and a receiver -->
   <beta>0.65</beta>
   <!-- Number of transmitters to place in the simulation. -->
-  <numTransmitters>10</numTransmitters>
+  <numTransmitters>100</numTransmitters>
   <!-- Maximum number of receivers to try and place. -->
   <numReceivers>3</numReceivers>
   <!-- UNUSED. Power value for calculating beta if not supplied. -->
@@ -41,8 +41,10 @@
                        try to find a "good" maximum. 
        * "fair" - uses an adaptive grid, but tries to find the "fairest" placement
                   to maximize the number of transmitters with improved contention.
+       * "density" - breaks the total area into uniform cells and places transmitters
+                      in the densest ones first.
   -->
-  <experimentType>recursive</experimentType>
+  <experimentType>density</experimentType>
   <!-- Number of points per "square unit" (grid) or for the entire "universe"
        (recursive).  -->
   <gridDensity>25</gridDensity>
@@ -79,6 +81,6 @@
 	-->
   <transmitterDistribution>uniform</transmitterDistribution>
   <!-- The number of rows/columns to split the area in to for density analysis -->
-  <densityRoot>5</densityRoot>
+  <densityRoot>10</densityRoot>
 </edu.rutgers.winlab.junsim.Config>
 

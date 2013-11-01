@@ -401,49 +401,32 @@ public class DensityExperiment implements Experiment {
       float maxWidth = Main.config.universeWidth;
       float cellHeight = maxHeight / Main.config.densityRoot;
       float cellWidth = maxWidth / Main.config.densityRoot;
+      int [][] cellDensity = new int[Main.config.densityRoot][Main.config.densityRoot];
 
-      for (int x = 0; x < Main.config.densityRoot; x++) {
-        for (int y = 0; y < Main.config.densityRoot; y++) {
-            double cellX = (x * cellWidth) + (0.5 * cellWidth);
-            double cellY = (y * cellHeight) + (0.5 * cellHeight);
-            final Point2D.Float centerOfCell = new Point2D.Float((float) cellX, (float) cellY);
-            solutionPoints.add(centerOfCell);
-        }
+      for (final Transmitter transmitter : transmitters) {
+          int transX = ((int) transmitter.getX()) / ((int) cellWidth);
+          int transY = ((int) transmitter.getY()) / ((int) cellHeight);
+          cellDensity[transX][transY]++;
       }
 
-        /*
-    // Add center points of all capture disks as solutions
-    final Collection<Point2D> solutionPoints = new HashSet<Point2D>();
-    for (final CaptureDisk disk : disks) {
-      if (disk.disk.getCenterX() < 0
-          || disk.disk.getCenterX() >= Main.config.universeWidth
-          || disk.disk.getCenterY() < 0
-          || disk.disk.getCenterY() > Main.config.universeHeight) {
-        continue;
-      }
-      final Point2D.Float center = new Point2D.Float((float) disk.disk.getCenterX(),
-          (float) disk.disk.getCenterY());
-      if (DensityExperiment.checkPointInRange(center, transmitters)) {
-        solutionPoints.add(center);
-      }
-    }
-
-    // Add intersection of all capture disks as solutions
-    for (final CaptureDisk d1 : disks) {
-      for (final CaptureDisk d2 : disks) {
-        final Collection<Point2D> intersections = Main.generateIntersections(d1, d2);
-        if (intersections != null && !intersections.isEmpty()) {
-          for (final Point2D p : intersections) {
-            if (DensityExperiment.checkPointInRange(p, transmitters)) {
-              solutionPoints.add(p);
-            }
+      for (int receiversPlaced = 0; receiversPlaced < Main.config.numReceivers; receiversPlaced++) {
+          int maxT = 0;
+          int highX = 0, highY = 0;
+          for (int x = 0; x < Main.config.densityRoot; x++) {
+              for (int y = 0; y < Main.config.densityRoot; y++) {
+                  if (cellDensity[x][y] > maxT) {
+                      maxT = cellDensity[x][y];
+                      highX = x;
+                      highY = y;
+                  }
+              }
           }
-        }
+          double cellX = (highX * cellWidth) + (0.5 * cellWidth);
+          double cellY = (highY * cellHeight) + (0.5 * cellHeight);
+          final Point2D.Float centerOfCell = new Point2D.Float((float) cellX, (float) cellY);
+          solutionPoints.add(centerOfCell);
+          cellDensity[highX][highY] = 0;
       }
-    }
-      */
-
-
     return solutionPoints;
   }
 
